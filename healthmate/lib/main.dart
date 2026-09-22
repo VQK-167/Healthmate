@@ -39,6 +39,21 @@ class _MyHomePageState extends State<MyHomePage> {
     _user.setUser('1', 'Nguyễn Hữu Huy', 'huy@example.com', 20, 'Nam', 170, 65);
   }
 
+  // Hàm xử lý khi bấm nút - cập nhật lại cân nặng để test thay đổi BMI
+  void _updateWeight() {
+    setState(() {
+      _user.setUser(
+        _user.id,
+        _user.name,
+        _user.email,
+        _user.age,
+        _user.gender,
+        _user.height,
+        _user.weight + 1, // tăng cân nặng thêm 1kg mỗi lần bấm
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,8 +67,14 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Text(_user.getFullInfo()),
             const SizedBox(height: 10),
+            Text('Cân nặng: ${_user.weight} kg'),
             Text('BMI: ${_user.getBMI().toStringAsFixed(1)}'),
             Text('Tình trạng: ${_user.getBMIStatus()}'),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _updateWeight,
+              child: const Text('Cập nhật cân nặng (+1kg)'),
+            ),
           ],
         ),
       ),
