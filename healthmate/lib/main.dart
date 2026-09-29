@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'models/user.dart';
+import 'widgets/bottom_navigation_page.dart';
+import 'screens/user_page.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -11,77 +10,39 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HealthMate',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'HealthMate'),
+      title: 'Healthmate',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(scaffoldBackgroundColor: const Color(0xFFF3F2F8)),
+      home: const MainPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MainPage> createState() => _MainPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  // Khởi tạo và gán dữ liệu cho User
-  final User _user = User();
+class _MainPageState extends State<MainPage> {
+  int _currentIndex = 4; // mở sẵn tab Hồ sơ
 
-  @override
-  void initState() {
-    super.initState();
-    _user.setUser('1', 'Nguyễn Hữu Huy', 'huy@example.com', 20, 'Nam', 170, 65);
-  }
-
-  // Hàm xử lý khi bấm nút - cập nhật lại cân nặng để test thay đổi BMI
-  void _updateWeight() {
-    setState(() {
-      _user.setUser(
-        _user.id,
-        _user.name,
-        _user.email,
-        _user.age,
-        _user.gender,
-        _user.height,
-        _user.weight + 1, // tăng cân nặng thêm 1kg mỗi lần bấm
-      );
-    });
-  }
+  final List<Widget> _pages = const [
+    Center(child: Text('Home')),
+    Center(child: Text('Sức khỏe')),
+    Center(child: Text('Dinh dưỡng')),
+    Center(child: Text('Thể thao')),
+    UserPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_user.getFullInfo()),
-            const SizedBox(height: 10),
-<<<<<<< Updated upstream
-            Text('Cân nặng: ${_user.weight} kg'),
-            Text('BMI: ${_user.getBMI().toStringAsFixed(1)}'),
-            Text('Tình trạng: ${_user.getBMIStatus()}'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _updateWeight,
-              child: const Text('Cập nhật cân nặng (+1kg)'),
-            ),
-=======
-            Text('BMI: ${_user.bmi.toStringAsFixed(1)}'),
-            Text('Tình trạng: ${_user.bmiStatus}'),
->>>>>>> Stashed changes
-          ],
-        ),
+      body: SafeArea(child: _pages[_currentIndex]),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (i) => setState(() => _currentIndex = i),
       ),
     );
   }
