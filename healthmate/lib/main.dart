@@ -67,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Text(_user.getFullInfo()),
             const SizedBox(height: 10),
+<<<<<<< Updated upstream
             Text('Cân nặng: ${_user.weight} kg'),
             Text('BMI: ${_user.getBMI().toStringAsFixed(1)}'),
             Text('Tình trạng: ${_user.getBMIStatus()}'),
@@ -75,6 +76,10 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: _updateWeight,
               child: const Text('Cập nhật cân nặng (+1kg)'),
             ),
+=======
+            Text('BMI: ${_user.bmi.toStringAsFixed(1)}'),
+            Text('Tình trạng: ${_user.bmiStatus}'),
+>>>>>>> Stashed changes
           ],
         ),
       ),
