@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class HealthObject<T> {
   T content;
 
@@ -8,6 +10,6 @@ class HealthObject<T> {
   }
 
   void showInfo() {
-    print('Gia tri: $content');
+    debugPrint('Gia tri: $content');
   }
 }

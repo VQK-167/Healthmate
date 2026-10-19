@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'health_object.dart';
 import 'weight_metric.dart';
 import 'heart_rate_metric.dart';
@@ -6,14 +8,14 @@ import '../../models/health_metric.dart';
 
 // Ham tong quat hoa cac doi tuong
 void showObject(Object obj) {
-  print('Doi tuong: $obj');
-  print('Kieu du lieu: ${obj.runtimeType}');
+  debugPrint('Doi tuong: $obj');
+  debugPrint('Kieu du lieu: ${obj.runtimeType}');
 
   if (obj is HealthObject) {
     obj.showInfo();
   }
 
-  print('--------------------');
+  debugPrint('--------------------');
 }
 
 void main() {
@@ -28,7 +30,7 @@ void main() {
     water,
   ];
 
-  print('=== HEALTHMATE GENERICS ===');
+  debugPrint('=== HEALTHMATE GENERICS ===');
 
   for (Object obj in objects) {
     showObject(obj);
@@ -44,11 +46,11 @@ HealthMetric health = HealthMetric(
   recordedAt: DateTime.now(),
 );
 
-print('=== HEALTH METRIC ===');
+debugPrint('=== HEALTH METRIC ===');
 
 health.showInfo();
-print('BMI: ${health.bmi.toStringAsFixed(2)}');
-print('Tinh trang: ${health.bmiStatus}');
+debugPrint('BMI: ${health.bmi.toStringAsFixed(2)}');
+debugPrint('Tinh trang: ${health.bmiStatus}');
 
 showObject(health);
 
