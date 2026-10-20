@@ -1,4 +1,5 @@
-
+import '../core/base_model.dart';
+ 
 /// Loại bữa ăn
 enum MealType {
   breakfast,
@@ -25,8 +26,8 @@ enum MealType {
           orElse: () => MealType.snack);
 }
  
-/// Thông tin dinh dưỡng (calo + 3 chất đa lượng)
-class Nutrition {
+/// Thông tin dinh dưỡng (không có id), kế thừa `BaseModel`
+class Nutrition extends BaseModel {
   final double calories; // kcal
   final double protein; // gram
   final double carbs; // gram
@@ -62,6 +63,7 @@ class Nutrition {
         fat: (json['fat'] as num?)?.toDouble() ?? 0,
       );
  
+  @override
   Map<String, dynamic> toJson() => {
         'calories': calories,
         'protein': protein,
@@ -70,22 +72,22 @@ class Nutrition {
       };
 }
  
-/// Một món ăn trong danh mục (thông tin cho 1 khẩu phần)
-class Food {
-  final String id;
+/// Một món ăn (có id), kế thừa `BaseEntity<Food>`
+class Food extends BaseEntity<Food> {
   final String name;
   final double servingSize; // ví dụ 100
   final String servingUnit; // ví dụ 'g', 'ml', 'bát'
   final Nutrition nutrition; // dinh dưỡng cho 1 khẩu phần
  
   const Food({
-    required this.id,
+    required super.id,
     required this.name,
     this.servingSize = 100,
     this.servingUnit = 'g',
     required this.nutrition,
   });
  
+  @override
   Food copyWith({
     String? id,
     String? name,
@@ -110,6 +112,7 @@ class Food {
             Nutrition.fromJson(json['nutrition'] as Map<String, dynamic>),
       );
  
+  @override
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,

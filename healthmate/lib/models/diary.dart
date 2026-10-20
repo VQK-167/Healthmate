@@ -1,15 +1,15 @@
+import '../core/base_model.dart';
 import 'nutrition.dart';
  
-/// Một lần ghi món ăn vào nhật ký
-class MealEntry {
-  final String id;
+
+class MealEntry extends BaseEntity<MealEntry> {
   final Food food;
   final double quantity; // số khẩu phần (1.5 = một rưỡi khẩu phần)
   final MealType mealType;
   final DateTime loggedAt;
  
   const MealEntry({
-    required this.id,
+    required super.id,
     required this.food,
     this.quantity = 1,
     required this.mealType,
@@ -19,6 +19,7 @@ class MealEntry {
   /// Tổng dinh dưỡng của entry = dinh dưỡng 1 khẩu phần x số khẩu phần
   Nutrition get totalNutrition => food.nutrition * quantity;
  
+  @override
   MealEntry copyWith({
     String? id,
     Food? food,
@@ -42,6 +43,7 @@ class MealEntry {
         loggedAt: DateTime.parse(json['loggedAt'] as String),
       );
  
+  @override
   Map<String, dynamic> toJson() => {
         'id': id,
         'food': food.toJson(),
@@ -51,8 +53,8 @@ class MealEntry {
       };
 }
  
-/// Nhật ký ăn uống của 1 người dùng trong 1 ngày
-class DiaryDay {
+/// Nhật ký ăn uống của 1 người dùng trong 1 ngày, kế thừa `BaseModel`
+class DiaryDay extends BaseModel {
   final String userId; // khớp với User.id bên models/user.dart
   final DateTime date;
   final double calorieGoal; // mục tiêu calo/ngày
@@ -107,6 +109,7 @@ class DiaryDay {
             .toList(),
       );
  
+  @override
   Map<String, dynamic> toJson() => {
         'userId': userId,
         'date': date.toIso8601String(),
