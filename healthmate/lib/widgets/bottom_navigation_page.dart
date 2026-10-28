@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/home_page.dart';
+import '../screens/health_screen.dart';
 import '../screens/user_page.dart';
 
 class BottomNavigationPage extends StatefulWidget {
@@ -19,7 +20,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       HomePage(onSelectTab: _goTo),
-      const _ComingSoon(title: 'Khám phá'),
+      const HealthScreen(),
       const _ComingSoon(title: 'Ưu đãi'),
       const _ComingSoon(title: 'Đã lưu'),
       const UserPage(),
@@ -37,9 +38,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.card_travel_outlined),
-            selectedIcon: Icon(Icons.card_travel),
-            label: 'My Trips',
+            icon: Icon(Icons.monitor_heart_outlined),
+            selectedIcon: Icon(Icons.monitor_heart),
+            label: 'Sức khỏe',
           ),
           NavigationDestination(
             icon: Icon(Icons.local_offer_outlined),
