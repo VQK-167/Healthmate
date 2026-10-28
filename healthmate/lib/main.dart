@@ -1,61 +1,83 @@
 import 'package:flutter/material.dart';
-import 'models/user.dart';
+
+import 'screens/health_screen.dart';
+import 'screens/nutrition_screen.dart';
+import 'widgets/bottom_nav_bar.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const HealthMateApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HealthMateApp extends StatelessWidget {
+  const HealthMateApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'HealthMate',
+
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'HealthMate'),
+
+      home: const MainScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  // Khởi tạo và gán dữ liệu cho User
-  final User _user = User();
+class _MainScreenState extends State<MainScreen> {
 
-  @override
-  void initState() {
-    super.initState();
-    _user.setUser('1', 'Nguyễn Hữu Huy', 'huy@example.com', 20, 'Nam', 170, 65);
-  }
+  // 1 = Sức khỏe
+  int currentIndex = 1;
+
+  final List<Widget> screens = [
+    const Center(
+      child: Text(
+        'Home',
+        style: TextStyle(fontSize: 24),
+      ),
+    ),
+
+    const HealthScreen(),
+
+    const NutritionScreen(),
+
+    const Center(
+      child: Text(
+        'Thể thao',
+        style: TextStyle(fontSize: 24),
+      ),
+    ),
+
+    const Center(
+      child: Text(
+        'Hồ sơ',
+        style: TextStyle(fontSize: 24),
+      ),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_user.getFullInfo()),
-            const SizedBox(height: 10),
-            Text('BMI: ${_user.getBMI().toStringAsFixed(1)}'),
-            Text('Tình trạng: ${_user.getBMIStatus()}'),
-          ],
-        ),
+      body: screens[currentIndex],
+
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: currentIndex,
+
+        onTap: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
       ),
     );
   }
