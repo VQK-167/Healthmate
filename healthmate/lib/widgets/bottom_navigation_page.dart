@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../screens/home_page.dart';
 import '../screens/health_screen.dart';
+import '../screens/nutrition_screen.dart';
+import '../screens/workout_screen.dart';
 import '../screens/user_page.dart';
 
 class BottomNavigationPage extends StatefulWidget {
@@ -21,8 +23,8 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
     final pages = <Widget>[
       HomePage(onSelectTab: _goTo),
       const HealthScreen(),
-      const _ComingSoon(title: 'Ưu đãi'),
-      const _ComingSoon(title: 'Đã lưu'),
+      const NutritionScreen(),
+      const WorkoutScreen(),
       const UserPage(),
     ];
 
@@ -43,36 +45,22 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
             label: 'Sức khỏe',
           ),
           NavigationDestination(
-            icon: Icon(Icons.local_offer_outlined),
-            selectedIcon: Icon(Icons.local_offer),
-            label: 'Deals',
+            icon: Icon(Icons.restaurant_outlined),
+            selectedIcon: Icon(Icons.restaurant),
+            label: 'Dinh dưỡng',
           ),
           NavigationDestination(
-            icon: Icon(Icons.favorite_border),
-            selectedIcon: Icon(Icons.favorite),
-            label: 'Saved',
+            icon: Icon(Icons.fitness_center_outlined),
+            selectedIcon: Icon(Icons.fitness_center),
+            label: 'Thể thao',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'More',
+            label: 'Hồ sơ',
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ComingSoon extends StatelessWidget {
-  final String title;
-
-  const _ComingSoon({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title), centerTitle: true),
-      body: const Center(child: Text('Đang phát triển')),
     );
   }
 }
