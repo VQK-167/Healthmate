@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../screens/health_page.dart';
 import '../screens/home_page.dart';
-import '../screens/health_screen.dart';
-import '../screens/nutrition_screen.dart';
-import '../screens/workout_screen.dart';
+import '../screens/nutrition_page.dart';
 import '../screens/user_page.dart';
+import '../screens/workout_page.dart';
 
 class BottomNavigationPage extends StatefulWidget {
   const BottomNavigationPage({super.key});
@@ -22,9 +22,9 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       HomePage(onSelectTab: _goTo),
-      const HealthScreen(),
-      const NutritionScreen(),
-      const WorkoutScreen(),
+      const HealthPage(),
+      const NutritionPage(),
+      const WorkoutPage(),
       const UserPage(),
     ];
 
