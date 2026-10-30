@@ -69,6 +69,8 @@ class AppUser implements BaseModel {
     String? avatarBase64,
     int? avatarIndex,
     bool clearAvatar = false,
+    bool clearAvatarBase64 = false,
+    bool clearAvatarIndex = false,
   }) => AppUser(
         id: id,
         email: email,
@@ -79,7 +81,11 @@ class AppUser implements BaseModel {
         gender: gender ?? this.gender,
         heightCm: heightCm ?? this.heightCm,
         weightKg: weightKg ?? this.weightKg,
-        avatarBase64: clearAvatar ? null : avatarBase64 ?? this.avatarBase64,
-        avatarIndex: clearAvatar ? null : avatarIndex ?? this.avatarIndex,
+        avatarBase64: clearAvatar || clearAvatarBase64
+            ? null
+            : avatarBase64 ?? this.avatarBase64,
+        avatarIndex: clearAvatar || clearAvatarIndex
+            ? null
+            : avatarIndex ?? this.avatarIndex,
       );
 }

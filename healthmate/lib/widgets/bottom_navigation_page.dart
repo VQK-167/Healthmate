@@ -25,7 +25,7 @@ class _BottomNavigationPageState extends State<BottomNavigationPage> {
       const HealthPage(),
       const NutritionPage(),
       const WorkoutPage(),
-      const UserPage(),
+      UserPage(onSelectTab: _goTo),
     ];
 
     return Scaffold(
