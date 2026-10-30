@@ -122,11 +122,11 @@ class _UserPageState extends State<UserPage> {
       ),
     );
   }
-  Future<void> _showGoalSheet() async {
-    var targetWeight = 65.0;
-    var dailyCalories = 2000;
-    var dailySteps = 10000;
-    var dailyWater = 2000;
+  Future<void> _showGoalSheet(AppUser profile) async {
+    var targetWeight = profile.targetWeightKg ?? 65.0;
+    var dailyCalories = profile.dailyCalorieTarget ?? 2000;
+    var dailySteps = profile.dailyStepsTarget ?? 10000;
+    var dailyWater = profile.dailyWaterTargetMl ?? 2000;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -157,7 +157,29 @@ class _UserPageState extends State<UserPage> {
                   _GoalEditorRow(icon: Icons.directions_walk_outlined, color: Colors.deepOrange, title: 'Bước chân mỗi ngày', subtitle: 'Hôm nay 6.230 bước', value: '${dailySteps.toString()} bước', onMinus: () => setSheetState(() => dailySteps = (dailySteps - 500).clamp(1000, 100000)), onPlus: () => setSheetState(() => dailySteps = (dailySteps + 500).clamp(1000, 100000))),
                   _GoalEditorRow(icon: Icons.water_drop_outlined, color: Colors.blue, title: 'Nước uống mỗi ngày', subtitle: 'Hôm nay 750 ml', value: '$dailyWater ml', onMinus: () => setSheetState(() => dailyWater = (dailyWater - 250).clamp(250, 10000)), onPlus: () => setSheetState(() => dailyWater = (dailyWater + 250).clamp(250, 10000))),
                   const SizedBox(height: 12),
-                  SizedBox(width: double.infinity, child: FilledButton(onPressed: () { Navigator.pop(context); _showMessage('Đã cập nhật mục tiêu.'); }, child: const Padding(padding: EdgeInsets.all(12), child: Text('Lưu mục tiêu')))),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () async {
+                        await _auth.updateProfile(
+                          profile.copyWith(
+                            targetWeightKg: targetWeight,
+                            dailyCalorieTarget: dailyCalories,
+                            dailyStepsTarget: dailySteps,
+                            dailyWaterTargetMl: dailyWater,
+                          ),
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          _showMessage('Đã cập nhật mục tiêu.');
+                        }
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text('Lưu mục tiêu'),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -402,7 +424,7 @@ class _UserPageState extends State<UserPage> {
                 ),
                 const SizedBox(height: 12),
                 _GoalSummaryCard(
-                  onTap: _showGoalSheet,
+                  onTap: () => _showGoalSheet(profile),
                 ),
                 const SizedBox(height: 28),
                 Text('Thông tin cá nhân', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),

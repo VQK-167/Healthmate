@@ -15,6 +15,10 @@ class AppUser implements BaseModel {
     this.weightKg,
     this.avatarBase64,
     this.avatarIndex,
+    this.targetWeightKg,
+    this.dailyCalorieTarget,
+    this.dailyStepsTarget,
+    this.dailyWaterTargetMl,
   });
 
   @override
@@ -29,6 +33,10 @@ class AppUser implements BaseModel {
   final double? weightKg;
   final String? avatarBase64;
   final int? avatarIndex;
+  final double? targetWeightKg;
+  final int? dailyCalorieTarget;
+  final int? dailyStepsTarget;
+  final int? dailyWaterTargetMl;
 
   factory AppUser.fromMap(String id, Map<String, dynamic> data) => AppUser(
         id: id,
@@ -42,6 +50,10 @@ class AppUser implements BaseModel {
         weightKg: (data['weightKg'] as num?)?.toDouble(),
         avatarBase64: data['avatarBase64'] as String?,
         avatarIndex: (data['avatarIndex'] as num?)?.toInt(),
+        targetWeightKg: (data['targetWeightKg'] as num?)?.toDouble(),
+        dailyCalorieTarget: (data['dailyCalorieTarget'] as num?)?.toInt(),
+        dailyStepsTarget: (data['dailyStepsTarget'] as num?)?.toInt(),
+        dailyWaterTargetMl: (data['dailyWaterTargetMl'] as num?)?.toInt(),
       );
 
   @override
@@ -58,6 +70,10 @@ class AppUser implements BaseModel {
         'weightKg': weightKg,
         'avatarBase64': avatarBase64,
         'avatarIndex': avatarIndex,
+        'targetWeightKg': targetWeightKg,
+        'dailyCalorieTarget': dailyCalorieTarget,
+        'dailyStepsTarget': dailyStepsTarget,
+        'dailyWaterTargetMl': dailyWaterTargetMl,
       };
 
   AppUser copyWith({
@@ -68,6 +84,10 @@ class AppUser implements BaseModel {
     double? weightKg,
     String? avatarBase64,
     int? avatarIndex,
+    double? targetWeightKg,
+    int? dailyCalorieTarget,
+    int? dailyStepsTarget,
+    int? dailyWaterTargetMl,
     bool clearAvatar = false,
     bool clearAvatarBase64 = false,
     bool clearAvatarIndex = false,
@@ -87,5 +107,9 @@ class AppUser implements BaseModel {
         avatarIndex: clearAvatar || clearAvatarIndex
             ? null
             : avatarIndex ?? this.avatarIndex,
+        targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+        dailyCalorieTarget: dailyCalorieTarget ?? this.dailyCalorieTarget,
+        dailyStepsTarget: dailyStepsTarget ?? this.dailyStepsTarget,
+        dailyWaterTargetMl: dailyWaterTargetMl ?? this.dailyWaterTargetMl,
       );
 }
