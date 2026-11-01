@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/user.dart';
+import '../repositories/workout_repository.dart';
 import '../services/auth_service.dart';
 import '../widgets/user_avatar.dart';
 
@@ -14,6 +15,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final WorkoutRepository _workoutRepository = WorkoutRepository();
   int _waterMl = 750;
 
   @override
@@ -39,13 +41,25 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      _buildSectionTitle(context, 'Mục tiêu calo'),
+                      const SizedBox(height: 8),
                       _DailyCaloriesCard(
                         dailyTarget: profile?.dailyCalorieTarget ?? 2000,
                       ),
-                      const SizedBox(height: 12),
-                      _buildOverviewCharts(context),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      _buildMacroCard(context),
+                      const SizedBox(height: 18),
+                      _buildSectionTitle(context, 'Hoạt động tập luyện'),
+                      const SizedBox(height: 8),
+                      _buildActivityGrid(context),
+                      const SizedBox(height: 18),
+                      _buildSectionTitle(context, 'Tiến độ hôm nay'),
+                      const SizedBox(height: 8),
                       _buildMetricGrid(context, profile),
+                      const SizedBox(height: 18),
+                      _buildSectionTitle(context, 'Thông báo cho bạn'),
+                      const SizedBox(height: 8),
+                      _buildNotifications(context, profile),
                     ]),
                   ),
                 ),
@@ -57,9 +71,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildSectionTitle(BuildContext context, String title) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
+          const Icon(Icons.more_horiz, size: 20, color: Colors.grey),
+        ],
+      );
   Widget _buildHeader(BuildContext context, AppUser? profile, String name) {
     final now = DateTime.now();
     final date = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}';
+    final hour = now.hour;
+    final greeting = hour < 11
+        ? 'Chào buổi sáng'
+        : hour < 14
+            ? 'Chào buổi trưa'
+            : hour < 18
+                ? 'Chào buổi chiều'
+                : 'Chào buổi tối';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Row(
@@ -70,7 +105,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Chào buổi sáng', style: Theme.of(context).textTheme.bodySmall),
+                Text(greeting, style: Theme.of(context).textTheme.bodySmall),
                 Text(name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
@@ -89,42 +124,121 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildOverviewCharts(BuildContext context) => Column(
-        children: [
-          _OverviewChartCard(
-            title: 'Sức khỏe',
-            subtitle: 'Cân nặng 7 ngày',
-            icon: Icons.monitor_heart_outlined,
-            color: Colors.indigo,
-            value: '68,4 kg',
-            detail: 'Giảm 0,6 kg so với tuần trước',
-            chart: const _MiniLineChart(color: Colors.indigo),
-            onTap: () => widget.onSelectTab(1),
+  Widget _buildMacroCard(BuildContext context) => Card(
+        color: const Color(0xFF211A36),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          child: Row(
+            children: [
+              Expanded(child: _MacroStat(icon: Icons.bolt, label: 'Protein', value: '0 / 96g', color: Colors.redAccent)),
+              Expanded(child: _MacroStat(icon: Icons.grain, label: 'Carb', value: '0 / 240g', color: Colors.lightBlueAccent)),
+              Expanded(child: _MacroStat(icon: Icons.water_drop, label: 'Fat', value: '0 / 64g', color: Colors.amber)),
+            ],
           ),
-          const SizedBox(height: 10),
-          _OverviewChartCard(
-            title: 'Dinh dưỡng',
-            subtitle: 'Bữa ăn hôm nay',
-            icon: Icons.restaurant_outlined,
-            color: Colors.orange,
-            value: '3 bữa ăn',
-            detail: 'Đã ghi nhận đầy đủ hôm nay',
-            chart: const _MiniBarChart(color: Colors.orange),
-            onTap: () => widget.onSelectTab(2),
-          ),
-          const SizedBox(height: 10),
-          _OverviewChartCard(
-            title: 'Thể thao',
-            subtitle: 'Hoạt động tuần này',
-            icon: Icons.fitness_center,
-            color: Colors.deepOrange,
-            value: '6.230 bước',
-            detail: '320 kcal đã đốt hôm nay',
-            chart: const _MiniBarChart(color: Colors.deepOrange),
-            onTap: () => widget.onSelectTab(3),
+        ),
+      );
+
+  Widget _buildActivityGrid(BuildContext context) {
+    const activities = [
+      (Icons.directions_run, 'Chạy bộ', 8.0),
+      (Icons.directions_bike, 'Đạp xe', 7.5),
+      (Icons.sports_tennis, 'Cầu lông', 5.5),
+      (Icons.sports_baseball, 'Pickleball', 5.0),
+      (Icons.self_improvement, 'Yoga', 2.5),
+      (Icons.fitness_center, 'Khác', 5.0),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 8,
+          childAspectRatio: .95,
+          children: [
+            for (final activity in activities)
+              _ActivityTile(
+                icon: activity.$1,
+                label: activity.$2,
+                onTap: () => _addActivity(context, activity.$2, activity.$3),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addActivity(BuildContext context, String name, double met) async {
+    final minutesController = TextEditingController();
+    final minutes = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Thêm $name'),
+        content: TextField(
+          controller: minutesController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Thời gian (phút)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, int.tryParse(minutesController.text)),
+            child: const Text('Tính calo'),
           ),
         ],
-      );
+      ),
+    );
+    minutesController.dispose();
+    if (minutes == null || minutes <= 0 || !mounted) return;
+    final calories = (met * minutes * 70 * 0.0175).round();
+    try {
+      await _workoutRepository.addWorkout(name: name, minutes: minutes, calories: calories);
+      if (!mounted) return;
+      ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('$name: $minutes phút · $calories kcal')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('Không thể lưu hoạt động: $error')));
+    }
+  }
+  Widget _buildNotifications(BuildContext context, AppUser? profile) {
+    final waterTarget = profile?.dailyWaterTargetMl ?? 2000;
+    final stepsTarget = profile?.dailyStepsTarget ?? 10000;
+    final notifications = <_HomeNotification>[
+      if (_waterMl < waterTarget)
+        _HomeNotification(
+          icon: Icons.water_drop_outlined,
+          color: Colors.blue,
+          title: 'Nhắc bạn uống nước',
+          message: 'Bạn còn ${waterTarget - _waterMl} ml để đạt mục tiêu hôm nay.',
+        ),
+      if (6230 < stepsTarget)
+        _HomeNotification(
+          icon: Icons.directions_walk_outlined,
+          color: Colors.deepOrange,
+          title: 'Tiếp tục vận động nhé',
+          message: 'Bạn còn ${stepsTarget - 6230} bước để đạt mục tiêu.',
+        ),
+      const _HomeNotification(
+        icon: Icons.restaurant_outlined,
+        color: Colors.orange,
+        title: 'Đừng quên ghi lại bữa ăn',
+        message: 'Theo dõi bữa ăn giúp thống kê dinh dưỡng chính xác hơn.',
+      ),
+    ];
+
+    return Column(
+      children: [
+        for (final notification in notifications)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _NotificationCard(notification: notification),
+          ),
+      ],
+    );
+  }
   Widget _buildMetricGrid(BuildContext context, AppUser? profile) => Column(
         children: [
           GridView.count(
@@ -133,7 +247,7 @@ class _HomePageState extends State<HomePage> {
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.9,
+            childAspectRatio: 1.35,
             children: [
               _MetricCard(
                 icon: Icons.directions_walk_outlined,
@@ -141,7 +255,8 @@ class _HomePageState extends State<HomePage> {
                 title: 'Bước chân',
                 value: '6.230',
                 subtitle: 'Mục tiêu ${profile?.dailyStepsTarget ?? 10000} bước',
-                onTap: () => widget.onSelectTab(3),
+                progress: (6230 / (profile?.dailyStepsTarget ?? 10000)).clamp(0.0, 1.0),
+                onTap: () {},
               ),
               _MetricCard(
                 icon: Icons.local_fire_department_outlined,
@@ -149,7 +264,8 @@ class _HomePageState extends State<HomePage> {
                 title: 'Tập luyện',
                 value: '320 kcal',
                 subtitle: '1 buổi tập hôm nay',
-                onTap: () => widget.onSelectTab(3),
+                progress: .64,
+                onTap: () {},
               ),
             ],
           ),
@@ -228,19 +344,22 @@ class _DailyCaloriesCardState extends State<_DailyCaloriesCard> {
               Text('${_weekdayLabel(_selectedDay)} · $dateText', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 14),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (index) {
                   final day = index + 1;
                   final selected = day == _selectedDay;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedDay = day),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(color: selected ? Colors.white : Colors.white.withValues(alpha: .14), shape: BoxShape.circle),
-                      child: Text(_shortWeekday(day), style: TextStyle(color: selected ? const Color(0xFF5847E8) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  return Expanded(
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedDay = day),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(color: selected ? Colors.white : Colors.white.withValues(alpha: .14), shape: BoxShape.circle),
+                          child: Text(_shortWeekday(day), style: TextStyle(color: selected ? const Color(0xFF5847E8) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
                     ),
                   );
                 }),
@@ -391,81 +510,57 @@ class _CalorieStat extends StatelessWidget {
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.icon, required this.color, required this.title, required this.value, required this.subtitle, required this.onTap});
+  const _MetricCard({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.onTap,
+    this.progress,
+  });
   final IconData icon;
   final Color color;
   final String title;
   final String value;
   final String subtitle;
   final VoidCallback onTap;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) => Card(
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: color, size: 20), const SizedBox(height: 6), Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)), const SizedBox(height: 3), Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10, color: Colors.grey.shade600))])),
-        ),
-      );
-}
-
-class _OverviewChartCard extends StatelessWidget {
-  const _OverviewChartCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.value,
-    required this.detail,
-    required this.chart,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String detail;
-  final Widget chart;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            child: Row(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: color),
+                Row(
+                  children: [
+                    Icon(icon, color: color, size: 20),
+                    const Spacer(),
+                    Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 18),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                      const SizedBox(height: 8),
-                      Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text(detail, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-                    ],
+                const SizedBox(height: 6),
+                Text(title, style: Theme.of(context).textTheme.bodySmall),
+                Text(value, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 3),
+                Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10, color: Colors.grey.shade600)),
+                if (progress != null) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      color: color,
+                      backgroundColor: color.withValues(alpha: .12),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(width: 86, height: 58, child: chart),
-                const Icon(Icons.chevron_right, size: 20),
+                ],
               ],
             ),
           ),
@@ -473,82 +568,78 @@ class _OverviewChartCard extends StatelessWidget {
       );
 }
 
-class _MiniLineChart extends StatelessWidget {
-  const _MiniLineChart({required this.color});
-  final Color color;
+class _HomeNotification {
+  const _HomeNotification({required this.icon, required this.color, required this.title, required this.message});
 
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: _MiniLineChartPainter(color),
-        child: const SizedBox.expand(),
-      );
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String message;
 }
 
-class _MiniLineChartPainter extends CustomPainter {
-  const _MiniLineChartPainter(this.color);
-  final Color color;
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.notification});
+
+  final _HomeNotification notification;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final values = [0.72, 0.58, 0.64, 0.42, 0.5, 0.32, 0.2];
-    final path = Path();
-    final line = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    for (var i = 0; i < values.length; i++) {
-      final x = size.width * i / (values.length - 1);
-      final y = values[i] * size.height;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    canvas.drawPath(path, line);
-    canvas.drawCircle(Offset(size.width, values.last * size.height), 3.5, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MiniLineChartPainter oldDelegate) => oldDelegate.color != color;
-}
-
-class _MiniBarChart extends StatelessWidget {
-  const _MiniBarChart({required this.color});
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-        painter: _MiniBarChartPainter(color),
-        child: const SizedBox.expand(),
-      );
-}
-
-class _MiniBarChartPainter extends CustomPainter {
-  const _MiniBarChartPainter(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final values = [0.42, 0.68, 0.55, 0.82, 0.58, 0.72, 0.48];
-    final barWidth = (size.width - 12) / values.length;
-    final paint = Paint()..color = color;
-    for (var i = 0; i < values.length; i++) {
-      final height = values[i] * size.height;
-      final left = i * barWidth + 1;
-      final top = size.height - height;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, top, barWidth - 3, height),
-          const Radius.circular(4),
+  Widget build(BuildContext context) => Card(
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          leading: CircleAvatar(
+            backgroundColor: notification.color.withValues(alpha: .12),
+            child: Icon(notification.icon, color: notification.color, size: 20),
+          ),
+          title: Text(notification.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          subtitle: Text(notification.message, maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
-        paint,
       );
-    }
-  }
+}
+class _MacroStat extends StatelessWidget {
+  const _MacroStat({required this.icon, required this.label, required this.value, required this.color});
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
 
   @override
-  bool shouldRepaint(covariant _MiniBarChartPainter oldDelegate) => oldDelegate.color != color;
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: 5), Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))]),
+          const SizedBox(height: 8),
+          ClipRRect(borderRadius: BorderRadius.circular(6), child: const LinearProgressIndicator(value: 0, minHeight: 5, backgroundColor: Color(0xFF4A435B))),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      );
 }
+
+
+class _ActivityTile extends StatelessWidget {
+  const _ActivityTile({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: .12),
+              child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(height: 6),
+            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+}
+
