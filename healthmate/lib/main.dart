@@ -6,11 +6,14 @@ import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_page.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'widgets/bottom_navigation_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.instance.initialize();
+  await NotificationService.instance.scheduleDefaultReminders();
   runApp(const HealthMateApp());
 }
 

@@ -1,15 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/user.dart';
+import '../repositories/user_repository.dart';
 
 class AuthService {
-  AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
+  AuthService({FirebaseAuth? auth, UserRepository? userRepository})
       : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+        _userRepository = userRepository ?? UserRepository();
 
   final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final UserRepository _userRepository;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -22,7 +22,7 @@ class AuthService {
     final user = credential.user!;
     await user.updateDisplayName(displayName.trim());
     final profile = AppUser(id: user.uid, email: user.email ?? email.trim(), displayName: displayName.trim(), createdAt: DateTime.now());
-    await _firestore.collection('users').doc(user.uid).set(profile.toMap());
+    await _userRepository.create(profile);
     return profile;
   }
 
@@ -31,15 +31,10 @@ class AuthService {
 
   Future<void> signOut() => _auth.signOut();
 
-  Stream<AppUser?> watchProfile(String uid) => _firestore.collection('users').doc(uid).snapshots().map(
-        (snapshot) => snapshot.exists && snapshot.data() != null ? AppUser.fromMap(snapshot.id, snapshot.data()!) : null,
-      );
+  Stream<AppUser?> watchProfile(String uid) => _userRepository.watch(uid);
 
   Future<void> updateProfile(AppUser profile) async {
-    await _firestore.collection('users').doc(profile.id).set(
-          profile.toMap(),
-          SetOptions(merge: true),
-        );
+    await _userRepository.update(profile);
     if (_auth.currentUser?.uid == profile.id &&
         _auth.currentUser?.displayName != profile.displayName) {
       await _auth.currentUser?.updateDisplayName(profile.displayName);
@@ -68,6 +63,6 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) return;
     await user.delete();
-    await _firestore.collection('users').doc(user.uid).delete();
+    await _userRepository.delete(user.uid);
   }
 }
