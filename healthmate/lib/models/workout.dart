@@ -1,6 +1,5 @@
 import '../core/base_model.dart';
 
-/// Một buổi tập. Lưu trong collection "workouts" của Firestore.
 class Workout implements BaseModel {
   const Workout({
     required this.id,
@@ -9,17 +8,42 @@ class Workout implements BaseModel {
     required this.minutes,
     required this.calories,
     required this.date,
+    this.type = 'other',
+    this.note = '',
   });
 
   @override
-  final String id; // id tài liệu Firestore
-  final String userId; // id người dùng sở hữu buổi tập
+  final String id;
+  final String userId;
   final String name;
   final int minutes;
   final int calories;
   final DateTime date;
 
-  /// Đổi object thành Map để ghi lên Firestore.
+  /// Loại bài tập: run, walk, bike, swim, yoga, gym, ball, other.
+  /// Buổi tập cũ không có trường này nên mặc định là 'other'.
+  final String type;
+  final String note;
+
+  Workout copyWith({
+    String? name,
+    int? minutes,
+    int? calories,
+    DateTime? date,
+    String? type,
+    String? note,
+  }) =>
+      Workout(
+        id: id,
+        userId: userId,
+        name: name ?? this.name,
+        minutes: minutes ?? this.minutes,
+        calories: calories ?? this.calories,
+        date: date ?? this.date,
+        type: type ?? this.type,
+        note: note ?? this.note,
+      );
+
   @override
   Map<String, dynamic> toMap() => {
         'userId': userId,
@@ -27,9 +51,10 @@ class Workout implements BaseModel {
         'minutes': minutes,
         'calories': calories,
         'date': dateTimeToFirestore(date),
+        'type': type,
+        'note': note,
       };
 
-  /// Đổi Map đọc từ Firestore thành object.
   factory Workout.fromMap(String id, Map<String, dynamic> map) => Workout(
         id: id,
         userId: map['userId'] as String? ?? '',
@@ -37,11 +62,11 @@ class Workout implements BaseModel {
         minutes: (map['minutes'] as num?)?.toInt() ?? 0,
         calories: (map['calories'] as num?)?.toInt() ?? 0,
         date: dateTimeFromFirestore(map['date']) ?? DateTime.now(),
+        type: map['type'] as String? ?? 'other',
+        note: map['note'] as String? ?? '',
       );
 }
 
-/// Một mục tiêu. Lưu trong collection "goals" của Firestore.
-/// type: 'steps' (bước chân), 'calories' (calo), 'workouts' (số buổi tập).
 class Goal implements BaseModel {
   const Goal({
     required this.id,
@@ -59,12 +84,11 @@ class Goal implements BaseModel {
   final String userId;
   final String type;
   final String title;
-  final double target; // con số cần đạt
+  final double target;
   final double current;
   final String unit;
   final DateTime? updatedAt;
 
-  /// Tiến độ từ 0 đến 1.
   double get progress => target <= 0 ? 0 : (current / target).clamp(0, 1).toDouble();
 
   @override
