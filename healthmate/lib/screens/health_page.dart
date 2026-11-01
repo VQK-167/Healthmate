@@ -55,10 +55,15 @@ class _HealthPageState extends State<HealthPage> {
               const SizedBox(height: 20),
               _WeightTrendChart(metrics: metrics),
               const SizedBox(height: 20),
+              _BloodPressureTrendChart(metrics: metrics),
+              const SizedBox(height: 20),
+              _HeartRateTrendChart(metrics: metrics),
+              const SizedBox(height: 20),
               Text('Lịch sử', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ...metrics.map((metric) => _HistoryTile(
                     metric: metric,
+                    onEdit: () => _showEditSheet(context, repository, metric),
                     onDelete: () => repository.delete(metric.id),
                   )),
             ],
@@ -74,6 +79,19 @@ class _HealthPageState extends State<HealthPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _AddMetricSheet(repository: repository, userId: userId),
+    );
+  }
+
+  Future<void> _showEditSheet(BuildContext context, HealthRepository repository, HealthMetric metric) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AddMetricSheet(
+        repository: repository,
+        userId: metric.userId,
+        existing: metric,
+      ),
     );
   }
 }
@@ -267,18 +285,201 @@ class _WeightTrendChart extends StatelessWidget {
   }
 }
 
+class _BloodPressureTrendChart extends StatelessWidget {
+  const _BloodPressureTrendChart({required this.metrics});
+  final List<HealthMetric> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    // Chart wants oldest -> newest, repository returns newest-first.
+    final points = metrics
+        .where((m) => m.hasBloodPressure)
+        .toList()
+        .reversed
+        .toList();
+    if (points.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final systolicSpots = [
+      for (var i = 0; i < points.length; i++) FlSpot(i.toDouble(), points[i].systolic!.toDouble()),
+    ];
+    final diastolicSpots = [
+      for (var i = 0; i < points.length; i++) FlSpot(i.toDouble(), points[i].diastolic!.toDouble()),
+    ];
+    final values = [...points.map((p) => p.systolic!.toDouble()), ...points.map((p) => p.diastolic!.toDouble())];
+    final minY = values.reduce((a, b) => a < b ? a : b);
+    final maxY = values.reduce((a, b) => a > b ? a : b);
+    final padding = (maxY - minY).abs() < 1 ? 1.0 : (maxY - minY) * 0.2;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('Xu hướng huyết áp', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                _LegendDot(color: Colors.pink, label: 'Tâm thu'),
+                const SizedBox(width: 12),
+                _LegendDot(color: Colors.indigo, label: 'Tâm trương'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 180,
+              child: LineChart(
+                LineChartData(
+                  minY: minY - padding,
+                  maxY: maxY + padding,
+                  gridData: const FlGridData(show: true, drawVerticalLine: false),
+                  titlesData: const FlTitlesData(
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: systolicSpots,
+                      isCurved: true,
+                      color: Colors.pink,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: true),
+                    ),
+                    LineChartBarData(
+                      spots: diastolicSpots,
+                      isCurved: true,
+                      color: Colors.indigo,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: true),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeartRateTrendChart extends StatelessWidget {
+  const _HeartRateTrendChart({required this.metrics});
+  final List<HealthMetric> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    // Chart wants oldest -> newest, repository returns newest-first.
+    final points = metrics
+        .where((m) => m.heartRate != null)
+        .toList()
+        .reversed
+        .toList();
+    if (points.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final spots = [
+      for (var i = 0; i < points.length; i++) FlSpot(i.toDouble(), points[i].heartRate!.toDouble()),
+    ];
+    final minY = points.map((p) => p.heartRate!.toDouble()).reduce((a, b) => a < b ? a : b);
+    final maxY = points.map((p) => p.heartRate!.toDouble()).reduce((a, b) => a > b ? a : b);
+    final padding = (maxY - minY).abs() < 1 ? 1.0 : (maxY - minY) * 0.2;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Xu hướng nhịp tim', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 180,
+              child: LineChart(
+                LineChartData(
+                  minY: minY - padding,
+                  maxY: maxY + padding,
+                  gridData: const FlGridData(show: true, drawVerticalLine: false),
+                  titlesData: const FlTitlesData(
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: Colors.teal,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Colors.teal.withValues(alpha: .12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 4),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      );
+}
+
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.metric, required this.onDelete});
+  const _HistoryTile({required this.metric, required this.onEdit, required this.onDelete});
   final HealthMetric metric;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   String _formatDate(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa chỉ số?'),
+        content: Text('Bạn có chắc muốn xóa chỉ số ngày ${_formatDate(metric.recordedAt)} không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onDelete();
+  }
+
   @override
   Widget build(BuildContext context) => Card(
         margin: const EdgeInsets.only(bottom: 10),
         child: ListTile(
+          onTap: onEdit,
           leading: CircleAvatar(
             backgroundColor: metric.isAbnormal ? Colors.red.shade50 : Colors.green.shade50,
             child: Icon(
@@ -293,18 +494,34 @@ class _HistoryTile extends StatelessWidget {
             if (metric.hasBloodPressure) '${metric.systolic}/${metric.diastolic} mmHg',
             if (metric.heartRate != null) '${metric.heartRate} bpm',
           ].join(' · ')),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDelete,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Sửa',
+                onPressed: onEdit,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Xóa',
+                onPressed: () => _confirmDelete(context),
+              ),
+            ],
           ),
         ),
       );
 }
 
 class _AddMetricSheet extends StatefulWidget {
-  const _AddMetricSheet({required this.repository, required this.userId});
+  const _AddMetricSheet({required this.repository, required this.userId, this.existing});
   final HealthRepository repository;
   final String userId;
+
+  /// When set, the sheet edits this check-in instead of creating a new one.
+  final HealthMetric? existing;
+
+  bool get isEditing => existing != null;
 
   @override
   State<_AddMetricSheet> createState() => _AddMetricSheetState();
@@ -312,11 +529,21 @@ class _AddMetricSheet extends StatefulWidget {
 
 class _AddMetricSheetState extends State<_AddMetricSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _systolicController = TextEditingController();
-  final _diastolicController = TextEditingController();
-  final _heartRateController = TextEditingController();
+  late final _heightController = TextEditingController(
+    text: widget.existing?.heightCm?.toString() ?? '',
+  );
+  late final _weightController = TextEditingController(
+    text: widget.existing?.weightKg?.toString() ?? '',
+  );
+  late final _systolicController = TextEditingController(
+    text: widget.existing?.systolic?.toString() ?? '',
+  );
+  late final _diastolicController = TextEditingController(
+    text: widget.existing?.diastolic?.toString() ?? '',
+  );
+  late final _heartRateController = TextEditingController(
+    text: widget.existing?.heartRate?.toString() ?? '',
+  );
   bool _isSaving = false;
 
   @override
@@ -336,16 +563,22 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
+      final existing = widget.existing;
       final metric = HealthMetric(
+        id: existing?.id ?? '',
         userId: widget.userId,
-        recordedAt: DateTime.now(),
+        recordedAt: existing?.recordedAt ?? DateTime.now(),
         heightCm: _parseDouble(_heightController.text),
         weightKg: _parseDouble(_weightController.text),
         systolic: _parseInt(_systolicController.text),
         diastolic: _parseInt(_diastolicController.text),
         heartRate: _parseInt(_heartRateController.text),
       );
-      await widget.repository.add(metric);
+      if (existing == null) {
+        await widget.repository.add(metric);
+      } else {
+        await widget.repository.update(metric);
+      }
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) {
@@ -384,7 +617,10 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                   children: [
                     Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)))),
                     const SizedBox(height: 16),
-                    Text('Ghi chỉ số sức khỏe', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      widget.isEditing ? 'Sửa chỉ số sức khỏe' : 'Ghi chỉ số sức khỏe',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Text('Nhập các chỉ số bạn có, có thể bỏ trống ô chưa đo.', style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 16),
@@ -441,7 +677,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                         onPressed: _isSaving ? null : _save,
                         child: _isSaving
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Lưu'),
+                            : Text(widget.isEditing ? 'Cập nhật' : 'Lưu'),
                       ),
                     ),
                   ],

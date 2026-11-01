@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/health_metric.dart';
 import '../models/user.dart';
+import '../repositories/health_repository.dart';
 import '../services/auth_service.dart';
 import '../widgets/user_avatar.dart';
 
@@ -43,7 +45,7 @@ class _HomePageState extends State<HomePage> {
                         dailyTarget: profile?.dailyCalorieTarget ?? 2000,
                       ),
                       const SizedBox(height: 12),
-                      _buildOverviewCharts(context),
+                      _buildOverviewCharts(context, firebaseUser?.uid),
                       const SizedBox(height: 12),
                       _buildMetricGrid(context, profile),
                     ]),
@@ -89,18 +91,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildOverviewCharts(BuildContext context) => Column(
+  Widget _buildOverviewCharts(BuildContext context, String? userId) => Column(
         children: [
-          _OverviewChartCard(
-            title: 'Sức khỏe',
-            subtitle: 'Cân nặng 7 ngày',
-            icon: Icons.monitor_heart_outlined,
-            color: Colors.indigo,
-            value: '68,4 kg',
-            detail: 'Giảm 0,6 kg so với tuần trước',
-            chart: const _MiniLineChart(color: Colors.indigo),
-            onTap: () => widget.onSelectTab(1),
-          ),
+          if (userId == null)
+            _OverviewChartCard(
+              title: 'Sức khỏe',
+              subtitle: 'Cân nặng 7 ngày',
+              icon: Icons.monitor_heart_outlined,
+              color: Colors.indigo,
+              value: '--',
+              detail: 'Chưa đăng nhập',
+              chart: const _MiniLineChart(color: Colors.indigo, values: []),
+              onTap: () => widget.onSelectTab(1),
+            )
+          else
+            StreamBuilder<List<HealthMetric>>(
+              stream: HealthRepository(userId: userId).watchRange(
+                DateTime.now().subtract(const Duration(days: 7)),
+                DateTime.now(),
+              ),
+              builder: (context, snapshot) => _HealthOverviewCard(
+                metrics: snapshot.data ?? const <HealthMetric>[],
+                onTap: () => widget.onSelectTab(1),
+              ),
+            ),
           const SizedBox(height: 10),
           _OverviewChartCard(
             title: 'Dinh dưỡng',
@@ -473,24 +487,81 @@ class _OverviewChartCard extends StatelessWidget {
       );
 }
 
+/// "Sức khỏe" overview card backed by real weight check-ins from the last 7
+/// days (as opposed to the still-mocked nutrition/workout cards below).
+class _HealthOverviewCard extends StatelessWidget {
+  const _HealthOverviewCard({required this.metrics, required this.onTap});
+
+  /// Newest-first check-ins within the last 7 days (see [HealthRepository.watchRange]).
+  final List<HealthMetric> metrics;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final weighed = metrics.where((m) => m.weightKg != null).toList();
+    final latestWeight = weighed.isEmpty ? null : weighed.first.weightKg;
+    final oldestWeight = weighed.isEmpty ? null : weighed.last.weightKg;
+    final delta = (latestWeight != null && oldestWeight != null && weighed.length > 1)
+        ? latestWeight - oldestWeight
+        : null;
+
+    String detail;
+    if (weighed.isEmpty) {
+      detail = 'Chưa có dữ liệu cân nặng';
+    } else if (delta == null) {
+      detail = 'Chưa đủ dữ liệu để so sánh';
+    } else if (delta.abs() < 0.05) {
+      detail = 'Không đổi so với tuần trước';
+    } else if (delta < 0) {
+      detail = 'Giảm ${delta.abs().toStringAsFixed(1)} kg so với tuần trước';
+    } else {
+      detail = 'Tăng ${delta.toStringAsFixed(1)} kg so với tuần trước';
+    }
+
+    return _OverviewChartCard(
+      title: 'Sức khỏe',
+      subtitle: 'Cân nặng 7 ngày',
+      icon: Icons.monitor_heart_outlined,
+      color: Colors.indigo,
+      value: latestWeight == null ? '--' : '${latestWeight.toStringAsFixed(1)} kg',
+      detail: detail,
+      // Chart wants oldest -> newest; watchRange returns newest-first.
+      chart: _MiniLineChart(color: Colors.indigo, values: weighed.reversed.map((m) => m.weightKg!).toList()),
+      onTap: onTap,
+    );
+  }
+}
+
 class _MiniLineChart extends StatelessWidget {
-  const _MiniLineChart({required this.color});
+  const _MiniLineChart({required this.color, required this.values});
   final Color color;
+  final List<double> values;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-        painter: _MiniLineChartPainter(color),
+        painter: _MiniLineChartPainter(color, values),
         child: const SizedBox.expand(),
       );
 }
 
 class _MiniLineChartPainter extends CustomPainter {
-  const _MiniLineChartPainter(this.color);
+  const _MiniLineChartPainter(this.color, this.values);
   final Color color;
+  final List<double> values;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final values = [0.72, 0.58, 0.64, 0.42, 0.5, 0.32, 0.2];
+    if (values.isEmpty) return;
+    if (values.length == 1) {
+      canvas.drawCircle(Offset(size.width, size.height / 2), 3.5, Paint()..color = color);
+      return;
+    }
+    final minV = values.reduce((a, b) => a < b ? a : b);
+    final maxV = values.reduce((a, b) => a > b ? a : b);
+    final range = (maxV - minV).abs() < 0.01 ? 1.0 : maxV - minV;
+    // Higher value renders closer to the top (smaller y).
+    final normalizedY = values.map((v) => (1 - (v - minV) / range) * size.height).toList();
+
     final path = Path();
     final line = Paint()
       ..color = color
@@ -498,21 +569,21 @@ class _MiniLineChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    for (var i = 0; i < values.length; i++) {
-      final x = size.width * i / (values.length - 1);
-      final y = values[i] * size.height;
+    for (var i = 0; i < normalizedY.length; i++) {
+      final x = size.width * i / (normalizedY.length - 1);
       if (i == 0) {
-        path.moveTo(x, y);
+        path.moveTo(x, normalizedY[i]);
       } else {
-        path.lineTo(x, y);
+        path.lineTo(x, normalizedY[i]);
       }
     }
     canvas.drawPath(path, line);
-    canvas.drawCircle(Offset(size.width, values.last * size.height), 3.5, Paint()..color = color);
+    canvas.drawCircle(Offset(size.width, normalizedY.last), 3.5, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(covariant _MiniLineChartPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _MiniLineChartPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.values != values;
 }
 
 class _MiniBarChart extends StatelessWidget {

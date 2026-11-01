@@ -38,5 +38,17 @@ class HealthRepository {
     return _repository.add(metric);
   }
 
+  /// Overwrites an existing check-in. [metric.id] must point at a document
+  /// already owned by this user (see [add]).
+  Future<void> update(HealthMetric metric) {
+    if (metric.userId != _userId) {
+      throw ArgumentError('HealthMetric.userId must match the repository owner');
+    }
+    if (metric.id.isEmpty) {
+      throw ArgumentError('Cannot update a HealthMetric without an id');
+    }
+    return _repository.set(metric);
+  }
+
   Future<void> delete(String id) => _repository.delete(id);
 }

@@ -1,7 +1,4 @@
-// lib/models/nutrition.dart
-// Phụ trách: Khánh - trang Dinh dưỡng
-// Model món ăn (Meal) và nước uống (WaterLog), cài BaseModel của Huy.
- 
+
 import '../core/base_model.dart';
  
 /// Loại bữa ăn
