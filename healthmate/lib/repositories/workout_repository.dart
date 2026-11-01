@@ -4,86 +4,116 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../core/firestore_repository.dart';
 import '../models/workout.dart';
 
-/// Lớp trung gian giữa giao diện và Firestore cho phần tập luyện.
-/// Giao diện không gọi Firestore trực tiếp mà luôn đi qua lớp này.
 class WorkoutRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  WorkoutRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance,
+        _workouts = FirestoreRepository<Workout>(
+          collectionPath: 'workouts',
+          fromMap: Workout.fromMap,
+          firestore: firestore,
+        );
 
-  // FirestoreRepository (của Huy) lo các thao tác CRUD chung cho collection "workouts".
-  final FirestoreRepository<Workout> _workouts =
-      FirestoreRepository<Workout>(collectionPath: 'workouts', fromMap: Workout.fromMap);
+  static const String _loginMessage = 'Bạn cần đăng nhập để sử dụng chức năng này.';
 
-  /// Id người dùng đang đăng nhập.
-  String get _uid {
-    final user = _auth.currentUser;
-    if (user == null) throw StateError('Bạn cần đăng nhập để sử dụng chức năng này.');
-    return user.uid;
-  }
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final FirestoreRepository<Workout> _workouts;
 
-  // ---------- Buổi tập: đọc, thêm, sửa, xoá ----------
+  String? get _uidOrNull => _auth.currentUser?.uid;
+  String get _uid => _uidOrNull ?? (throw StateError(_loginMessage));
 
-  /// Đọc (realtime) các buổi tập của người dùng, mới nhất trước.
-  /// Chỉ lọc theo userId rồi sắp xếp bằng Dart, nên không cần tạo index trên Firestore.
+  /// Danh sách buổi tập của người dùng, mới nhất trước.
+  /// Sắp xếp bằng Dart nên không cần tạo composite index trên Firestore.
   Stream<List<Workout>> watchWorkouts() {
-    return _workouts.watchAll(query: (q) => q.where('userId', isEqualTo: _uid)).map((list) {
-      list.sort((a, b) => b.date.compareTo(a.date));
-      return list;
-    });
+    final uid = _uidOrNull;
+    if (uid == null) return Stream<List<Workout>>.error(StateError(_loginMessage));
+    return _workouts
+        .watchAll(query: (q) => q.where('userId', isEqualTo: uid))
+        .map((list) => [...list]..sort((a, b) => b.date.compareTo(a.date)));
   }
 
-  Future<String> addWorkout({required String name, required int minutes, required int calories}) async {
-    _check(name, minutes, calories);
-    final workout = Workout(
-      id: '', // để trống, Firestore tự tạo id
+  Future<String> addWorkout({
+    required String name,
+    required int minutes,
+    required int calories,
+    DateTime? date,
+    String type = 'other',
+    String note = '',
+  }) async {
+    _validate(name, minutes, calories);
+    return _workouts.add(Workout(
+      id: '',
       userId: _uid,
       name: name.trim(),
       minutes: minutes,
       calories: calories,
-      date: DateTime.now(),
-    );
-    return _workouts.add(workout);
+      date: date ?? DateTime.now(),
+      type: type,
+      note: note.trim(),
+    ));
   }
 
   Future<void> updateWorkout(Workout workout) async {
-    _check(workout.name, workout.minutes, workout.calories);
-    await _workouts.set(workout);
+    _validate(workout.name, workout.minutes, workout.calories);
+    await _workouts.set(Workout(
+      id: workout.id,
+      userId: _uid,
+      name: workout.name.trim(),
+      minutes: workout.minutes,
+      calories: workout.calories,
+      date: workout.date,
+      type: workout.type,
+      note: workout.note.trim(),
+    ));
   }
 
   Future<void> deleteWorkout(String id) => _workouts.delete(id);
 
-  /// Kiểm tra dữ liệu nhập vào.
-  void _check(String name, int minutes, int calories) {
-    if (name.trim().isEmpty || minutes <= 0 || calories < 0) {
-      throw ArgumentError('Thông tin buổi tập không hợp lệ.');
-    }
-  }
-
-  // ---------- Các hàm cho trang Home ----------
+  // ----- Các hàm cho trang Home -----
 
   Stream<int> watchStepsToday() => _watchDailyNumber('steps');
 
   Stream<int> watchCaloriesBurnedToday() => _watchDailyNumber('caloriesBurned');
 
-  /// Mục tiêu (con số cần đạt) của một loại, ví dụ 'steps'. Chưa có thì trả về 0.
   Stream<double> watchGoal(String type) {
+    final uid = _uidOrNull;
+    if (uid == null) return Stream<double>.value(0.0);
     return _firestore
         .collection('goals')
-        .where('userId', isEqualTo: _uid)
+        .where('userId', isEqualTo: uid)
         .where('type', isEqualTo: type)
         .limit(1)
         .snapshots()
-        .map((snapshot) {
-      if (snapshot.docs.isEmpty) return 0.0;
-      return (snapshot.docs.first.data()['target'] as num?)?.toDouble() ?? 0.0;
+        .map((s) => s.docs.isEmpty ? 0.0 : ((s.docs.first.data()['target'] as num?)?.toDouble() ?? 0.0));
+  }
+
+  /// Số bước chân của từng ngày: khoá dạng "2026-10-30". Chỉ lọc theo userId nên không cần index.
+  Stream<Map<String, int>> watchStepsHistory() {
+    final uid = _uidOrNull;
+    if (uid == null) return Stream<Map<String, int>>.value(<String, int>{});
+    return _firestore.collection('daily_logs').where('userId', isEqualTo: uid).snapshots().map((snap) {
+      final result = <String, int>{};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final key = data['date'];
+        if (key is String) result[key] = (data['steps'] as num?)?.toInt() ?? 0;
+      }
+      return result;
     });
   }
 
-  /// Cộng thêm số bước vào bản ghi của hôm nay (dùng transaction để cộng dồn đúng).
+  /// Khoá ngày dạng "yyyy-MM-dd", dùng cho bản ghi bước chân.
+  static String dateKeyOf(DateTime d) {
+    final month = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '${d.year.toString().padLeft(4, '0')}-$month-$day';
+  }
+
   Future<void> addSteps(int steps) async {
     if (steps <= 0) throw ArgumentError('Số bước phải lớn hơn 0.');
     final uid = _uid;
-    final ref = _dailyRef();
+    final ref = _dailyRef(uid);
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);
       final old = (snap.data()?['steps'] as num?)?.toInt() ?? 0;
@@ -91,21 +121,22 @@ class WorkoutRepository {
     });
   }
 
-  // ---------- Nội bộ ----------
+  // ----- Nội bộ -----
 
-  /// Mỗi người mỗi ngày có một tài liệu trong "daily_logs", id dạng "uid_2026-10-30".
-  DocumentReference<Map<String, dynamic>> _dailyRef() {
-    return _firestore.collection('daily_logs').doc('${_uid}_${_dateKey()}');
+  void _validate(String name, int minutes, int calories) {
+    if (name.trim().isEmpty || minutes <= 0 || calories < 0) {
+      throw ArgumentError('Thông tin buổi tập không hợp lệ.');
+    }
   }
 
   Stream<int> _watchDailyNumber(String field) {
-    return _dailyRef().snapshots().map((snap) => (snap.data()?[field] as num?)?.toInt() ?? 0);
+    final uid = _uidOrNull;
+    if (uid == null) return Stream<int>.value(0);
+    return _dailyRef(uid).snapshots().map((s) => (s.data()?[field] as num?)?.toInt() ?? 0);
   }
 
-  String _dateKey() {
-    final d = DateTime.now();
-    final month = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$month-$day';
-  }
+  DocumentReference<Map<String, dynamic>> _dailyRef(String uid) =>
+      _firestore.collection('daily_logs').doc('${uid}_${_dateKey()}');
+
+  String _dateKey() => dateKeyOf(DateTime.now());
 }
