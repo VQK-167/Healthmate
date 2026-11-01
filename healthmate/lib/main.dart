@@ -25,7 +25,7 @@ class HealthMateApp extends StatelessWidget {
     return MaterialApp(
       title: 'HealthMate',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       home: const AuthGate(),
     );
   }

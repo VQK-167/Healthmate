@@ -72,7 +72,17 @@ class WorkoutRepository {
 
   // ----- Các hàm cho trang Home -----
 
-  Stream<int> watchStepsToday() => _watchDailyNumber('steps');
+  Stream<int> watchStepsToday() => watchStepsOn(DateTime.now());
+
+  Stream<int> watchStepsOn(DateTime day) {
+    final uid = _uidOrNull;
+    if (uid == null) return Stream<int>.value(0);
+    return _firestore
+        .collection('daily_logs')
+        .doc('${uid}_${dateKeyOf(day)}')
+        .snapshots()
+        .map((s) => (s.data()?['steps'] as num?)?.toInt() ?? 0);
+  }
 
   Stream<int> watchCaloriesBurnedToday() => _watchDailyNumber('caloriesBurned');
 

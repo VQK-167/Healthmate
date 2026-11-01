@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/nutrition.dart';
 import '../repositories/in_memory_nutrition_store.dart';
 import '../repositories/nutrition_repository.dart';
+import '../repositories/nutrition_store_factory.dart';
 import 'add_meal_page.dart';
 
 class NutritionPage extends StatefulWidget {
@@ -44,7 +45,10 @@ class _NutritionPageState extends State<NutritionPage> {
   @override
   void initState() {
     super.initState();
-    _store = widget.store ?? (_ownedStore = InMemoryNutritionStore());
+    _store = widget.store ?? createDefaultNutritionStore();
+    if (_store is InMemoryNutritionStore) {
+      _ownedStore = _store;
+    }
     _day = startOfDay(DateTime.now());
     _waterGoalMl = widget.waterGoalMl ?? defaultWaterGoalMl;
     _subscribe();

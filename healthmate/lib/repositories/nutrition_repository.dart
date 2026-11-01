@@ -216,7 +216,7 @@ class NutritionRepository extends NutritionStore {
   Future<int> getWaterGoalMl() async {
     try {
       final snap = await _userDoc.get();
-      final value = snap.data()?['waterGoalMl'];
+      final value = snap.data()?['dailyWaterTargetMl'] ?? snap.data()?['waterGoalMl'];
       if (value is num && value > 0) return value.toInt();
     } on FirebaseException {
       // Bỏ qua, dùng mặc định.

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../core/goal_rules.dart';
 import '../models/workout.dart';
-import '../repositories/goal_repository.dart';
 import '../repositories/workout_repository.dart';
 import 'goal_page.dart';
 import 'workout_stats_page.dart';
@@ -27,15 +26,14 @@ class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
 
   @override
-  State<WorkoutPage> createState() => _WorkoutPageState();
+  State<WorkoutPage> createState() => WorkoutPageState();
 }
 
-class _WorkoutPageState extends State<WorkoutPage> {
+class WorkoutPageState extends State<WorkoutPage> {
   final WorkoutRepository _repo = WorkoutRepository();
   late Stream<List<Workout>> _workouts;
   late Stream<int> _steps;
   late Stream<double> _stepGoal;
-  late Stream<List<Goal>> _goalList;
 
   /// Các buổi tập vừa vuốt xoá, ẩn ngay trong lúc chờ Firestore cập nhật.
   final Set<String> _hiddenIds = <String>{};
@@ -62,14 +60,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
     _workouts = _repo.watchWorkouts();
     _steps = _repo.watchStepsToday();
     _stepGoal = _repo.watchGoal('steps');
-    _goalList = GoalRepository().watchGoals();
   }
 
   void _reload() => setState(_subscribe);
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _toastUndo(String message, VoidCallback onUndo) {
@@ -89,7 +87,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
     if (e is ArgumentError) return '${e.message}';
     if (e is StateError) return e.message;
     if (e is FirebaseException) {
-      if (e.code == 'permission-denied') return 'Không có quyền ghi dữ liệu. Kiểm tra Firestore Rules.';
+      if (e.code == 'permission-denied')
+        return 'Không có quyền ghi dữ liệu. Kiểm tra Firestore Rules.';
       if (e.code == 'unavailable') return 'Mất kết nối mạng. Vui lòng thử lại.';
       return 'Lỗi Firestore (${e.code}).';
     }
@@ -144,18 +143,22 @@ class _WorkoutPageState extends State<WorkoutPage> {
       }, 'Đã lưu buổi tập.');
     } else {
       await _run(
-        () => _repo.updateWorkout(existing.copyWith(
-          name: input.name,
-          minutes: input.minutes,
-          calories: input.calories,
-          date: input.date,
-          type: input.kindKey,
-          note: input.note,
-        )),
+        () => _repo.updateWorkout(
+          existing.copyWith(
+            name: input.name,
+            minutes: input.minutes,
+            calories: input.calories,
+            date: input.date,
+            type: input.kindKey,
+            note: input.note,
+          ),
+        ),
         'Đã cập nhật buổi tập.',
       );
     }
   }
+
+  Future<void> openAddWorkoutDialog() => _openWorkoutDialog();
 
   void _duplicate(Workout w) {
     _openWorkoutDialog(
@@ -172,7 +175,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
       MaterialPageRoute(builder: (_) => const WorkoutTimerPage()),
     );
     if (result == null || !mounted) return;
-    await _openWorkoutDialog(initialKind: result.kindKey, initialMinutes: result.minutes);
+    await _openWorkoutDialog(
+      initialKind: result.kindKey,
+      initialMinutes: result.minutes,
+    );
   }
 
   // ---------------- Xoá và hoàn tác ----------------
@@ -182,10 +188,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Xoá buổi tập?'),
-        content: Text('Buổi tập "${w.name}" sẽ bị xoá. Bạn có thể hoàn tác ngay sau đó.'),
+        content: Text(
+          'Buổi tập "${w.name}" sẽ bị xoá. Bạn có thể hoàn tác ngay sau đó.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Huỷ')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Xoá')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Xoá'),
+          ),
         ],
       ),
     );
@@ -204,16 +218,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 
   Future<void> _restore(Workout w) async {
-    final ok = await _run(() => _repo.updateWorkout(w), 'Đã khôi phục buổi tập.');
+    final ok = await _run(
+      () => _repo.updateWorkout(w),
+      'Đã khôi phục buổi tập.',
+    );
     if (ok && mounted) setState(() => _hiddenIds.remove(w.id));
   }
 
-  void _openGoals() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalPage()));
-  }
-
   Future<void> _addSteps() async {
-    final steps = await showDialog<int>(context: context, builder: (_) => const _StepsDialog());
+    final steps = await showDialog<int>(
+      context: context,
+      builder: (_) => const _StepsDialog(),
+    );
     if (steps == null) return;
     await _run(() => _repo.addSteps(steps), 'Đã ghi $steps bước.');
   }
@@ -229,12 +245,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
           IconButton(
             tooltip: 'Thống kê',
             icon: const Icon(Icons.insights_outlined),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutStatsPage())),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WorkoutStatsPage()),
+            ),
           ),
-          TextButton.icon(
-            onPressed: _openGoals,
-            icon: const Icon(Icons.flag_rounded),
-            label: const Text('Mục tiêu'),
+          IconButton(
+            tooltip: 'Mục tiêu',
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const GoalPage()),
+            ),
           ),
         ],
       ),
@@ -253,18 +275,28 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Không tải được dữ liệu. Kiểm tra đăng nhập và kết nối Firestore.', textAlign: TextAlign.center),
+                    const Text(
+                      'Không tải được dữ liệu. Kiểm tra đăng nhập và kết nối Firestore.',
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 8),
                     Text('${snapshot.error}', textAlign: TextAlign.center),
                     const SizedBox(height: 12),
-                    FilledButton.icon(onPressed: _reload, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+                    FilledButton.icon(
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                    ),
                   ],
                 ),
               ),
             );
           }
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final all = snapshot.data!.where((w) => !_hiddenIds.contains(w.id)).toList();
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
+          final all = snapshot.data!
+              .where((w) => !_hiddenIds.contains(w.id))
+              .toList();
           final shown = _applyFilters(all);
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -276,10 +308,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
               SportFadeIn(index: 2, child: _weekCard(all)),
               const SizedBox(height: 4),
               SportFadeIn(index: 3, child: _stepsCard()),
-              const SizedBox(height: 4),
-              SportFadeIn(index: 4, child: _goalShortcut()),
               const SizedBox(height: 16),
-              Text('Lịch sử tập luyện', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Lịch sử tập luyện',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
               if (all.isEmpty)
                 _emptyState()
@@ -289,7 +322,9 @@ class _WorkoutPageState extends State<WorkoutPage> {
                 if (shown.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 28),
-                    child: Center(child: Text('Không có buổi tập nào khớp bộ lọc.')),
+                    child: Center(
+                      child: Text('Không có buổi tập nào khớp bộ lọc.'),
+                    ),
                   )
                 else
                   ..._history(shown),
@@ -304,9 +339,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
   List<Workout> _applyFilters(List<Workout> all) {
     final q = _query.trim().toLowerCase();
     return all.where((w) {
-      if (_kindFilter != 'all' && sportKindOf(w).key != _kindFilter) return false;
-      if (_rangeDays > 0 && !GoalRules.isInLastDays(w.date, _rangeDays)) return false;
-      if (q.isNotEmpty && !w.name.toLowerCase().contains(q) && !w.note.toLowerCase().contains(q)) return false;
+      if (_kindFilter != 'all' && sportKindOf(w).key != _kindFilter)
+        return false;
+      if (_rangeDays > 0 && !GoalRules.isInLastDays(w.date, _rangeDays))
+        return false;
+      if (q.isNotEmpty &&
+          !w.name.toLowerCase().contains(q) &&
+          !w.note.toLowerCase().contains(q))
+        return false;
       return true;
     }).toList();
   }
@@ -320,10 +360,17 @@ class _WorkoutPageState extends State<WorkoutPage> {
           CircleAvatar(
             radius: 36,
             backgroundColor: scheme.primaryContainer,
-            child: Icon(Icons.fitness_center, size: 36, color: scheme.onPrimaryContainer),
+            child: Icon(
+              Icons.fitness_center,
+              size: 36,
+              color: scheme.onPrimaryContainer,
+            ),
           ),
           const SizedBox(height: 12),
-          const Text('Chưa có buổi tập nào.\nNhấn “Thêm buổi tập” hoặc “Bấm giờ” để bắt đầu.', textAlign: TextAlign.center),
+          const Text(
+            'Chưa có buổi tập nào.\nNhấn “Thêm buổi tập” hoặc “Bấm giờ” để bắt đầu.',
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -342,7 +389,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
         const SizedBox(width: 8),
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutStatsPage())),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WorkoutStatsPage()),
+            ),
             icon: const Icon(Icons.insights_outlined),
             label: const Text('Thống kê'),
           ),
@@ -360,10 +410,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
     final totalCalories = items.fold<int>(0, (s, w) => s + w.calories);
     final totalMinutes = items.fold<int>(0, (s, w) => s + w.minutes);
     final last7 = GoalRules.inLastDays(items, 7);
-    final weekMinutes = GoalRules.weeklyMinutes(last7.map((w) => w.minutes).toList());
+    final weekMinutes = GoalRules.weeklyMinutes(
+      last7.map((w) => w.minutes).toList(),
+    );
     final streak = GoalRules.streak(items.map((w) => w.date).toList());
     final onColor = scheme.onPrimary;
-    final endColor = Color.lerp(scheme.primary, scheme.primaryContainer, 0.25) ?? scheme.primary;
+    final endColor =
+        Color.lerp(scheme.primary, scheme.primaryContainer, 0.25) ??
+        scheme.primary;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -374,7 +428,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
           colors: [scheme.primary, endColor],
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: scheme.primary.withAlpha(70), blurRadius: 18, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withAlpha(70),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +443,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
             children: [
               Icon(Icons.local_fire_department, color: onColor, size: 20),
               const SizedBox(width: 6),
-              Text('Hôm nay bạn đã đốt', style: TextStyle(color: onColor.withAlpha(225))),
+              Text(
+                'Hôm nay bạn đã đốt',
+                style: TextStyle(color: onColor.withAlpha(225)),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -392,17 +455,28 @@ class _WorkoutPageState extends State<WorkoutPage> {
             children: [
               SportCountUp(
                 value: todayCalories,
-                style: TextStyle(fontSize: 46, height: 1.1, fontWeight: FontWeight.bold, color: onColor),
+                style: TextStyle(
+                  fontSize: 46,
+                  height: 1.1,
+                  fontWeight: FontWeight.bold,
+                  color: onColor,
+                ),
               ),
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text('kcal', style: TextStyle(fontSize: 16, color: onColor.withAlpha(225))),
+                child: Text(
+                  'kcal',
+                  style: TextStyle(fontSize: 16, color: onColor.withAlpha(225)),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 2),
-          Text('Tổng cộng $totalMinutes phút • $totalCalories kcal', style: TextStyle(fontSize: 12, color: onColor.withAlpha(210))),
+          Text(
+            'Tổng cộng $totalMinutes phút • $totalCalories kcal',
+            style: TextStyle(fontSize: 12, color: onColor.withAlpha(210)),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -420,7 +494,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
   Widget _weekCard(List<Workout> items) {
     const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     final now = DateTime.now();
-    final days = List<DateTime>.generate(7, (i) => DateTime(now.year, now.month, now.day - (6 - i)));
+    final days = List<DateTime>.generate(
+      7,
+      (i) => DateTime(now.year, now.month, now.day - (6 - i)),
+    );
     final byDay = GoalRules.minutesByDay(items);
     final values = days.map((d) => byDay[d] ?? 0).toList();
     final total = values.fold<int>(0, (s, v) => s + v);
@@ -432,7 +509,12 @@ class _WorkoutPageState extends State<WorkoutPage> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Phút tập 7 ngày gần nhất', style: Theme.of(context).textTheme.titleMedium)),
+                Expanded(
+                  child: Text(
+                    'Phút tập 7 ngày gần nhất',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
                 SportChip(Icons.timer_outlined, 'Tổng $total phút'),
               ],
             ),
@@ -440,7 +522,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
             SportBarChart(
               values: values,
               labels: days.map((d) => labels[d.weekday - 1]).toList(),
-              tips: [for (var i = 0; i < 7; i++) '${days[i].day}/${days[i].month}: ${values[i]} phút'],
+              tips: [
+                for (var i = 0; i < 7; i++)
+                  '${days[i].day}/${days[i].month}: ${values[i]} phút',
+              ],
             ),
           ],
         ),
@@ -460,17 +545,25 @@ class _WorkoutPageState extends State<WorkoutPage> {
             builder: (context, goalSnap) {
               final steps = stepSnap.data ?? 0;
               final target = goalSnap.data ?? 0.0;
-              final progress = GoalRules.progress(current: steps.toDouble(), target: target);
+              final progress = GoalRules.progress(
+                current: steps.toDouble(),
+                target: target,
+              );
               final done = target > 0 && progress >= 1;
               final color = done ? Colors.green.shade600 : scheme.primary;
-              final text = target > 0 ? '$steps / ${target.toStringAsFixed(0)} bước' : '$steps bước';
+              final text = target > 0
+                  ? '$steps / ${target.toStringAsFixed(0)} bước'
+                  : '$steps bước';
               final Widget leading = target > 0
                   ? SportRing(
                       progress: progress,
                       color: color,
                       size: 60,
                       stroke: 7,
-                      child: Icon(done ? Icons.check_rounded : Icons.directions_walk, color: color),
+                      child: Icon(
+                        done ? Icons.check_rounded : Icons.directions_walk,
+                        color: color,
+                      ),
                     )
                   : CircleAvatar(
                       radius: 28,
@@ -487,12 +580,23 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Bước chân hôm nay'),
-                        Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          text,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         Text(
                           target > 0
-                              ? (done ? 'Đã đạt mục tiêu' : '${(progress * 100).toStringAsFixed(0)}% mục tiêu')
-                              : 'Bấm “Mục tiêu” để đặt mục tiêu bước chân.',
-                          style: TextStyle(fontSize: 12, color: done ? color : scheme.onSurfaceVariant),
+                              ? (done
+                                    ? 'Đã đạt mục tiêu'
+                                    : '${(progress * 100).toStringAsFixed(0)}% mục tiêu')
+                              : 'Tạo mục tiêu bước chân (biểu tượng cờ) để theo dõi.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: done ? color : scheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -502,51 +606,6 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     icon: const Icon(Icons.add),
                     onPressed: _addSteps,
                   ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Thẻ mục tiêu nổi bật: bấm để xem hoặc đặt mục tiêu.
-  Widget _goalShortcut() {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _openGoals,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-          child: StreamBuilder<List<Goal>>(
-            stream: _goalList,
-            builder: (context, snap) {
-              final count = snap.data?.length ?? 0;
-              return Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: scheme.primaryContainer,
-                    foregroundColor: scheme.onPrimaryContainer,
-                    child: const Icon(Icons.flag_rounded),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Mục tiêu của bạn', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(
-                          count > 0 ? 'Đang theo dõi $count mục tiêu' : 'Chưa có mục tiêu nào. Bấm để tạo mới.',
-                          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FilledButton.tonal(onPressed: _openGoals, child: Text(count > 0 ? 'Xem' : 'Đặt mục tiêu')),
                 ],
               );
             },
@@ -646,7 +705,13 @@ class _WorkoutPageState extends State<WorkoutPage> {
       final calories = entry.value.fold<int>(0, (s, w) => s + w.calories);
       out.add(_dayHeader(entry.key, minutes, calories));
       for (final w in entry.value) {
-        out.add(SportFadeIn(key: ValueKey('w_${w.id}'), index: index, child: _tile(w)));
+        out.add(
+          SportFadeIn(
+            key: ValueKey('w_${w.id}'),
+            index: index,
+            child: _tile(w),
+          ),
+        );
         index++;
       }
     }
@@ -660,9 +725,18 @@ class _WorkoutPageState extends State<WorkoutPage> {
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
       child: Row(
         children: [
-          Text(_dayLabel(day), style: TextStyle(fontWeight: FontWeight.w600, color: scheme.primary)),
+          Text(
+            _dayLabel(day),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: scheme.primary,
+            ),
+          ),
           const Spacer(),
-          Text('$minutes phút • $calories kcal', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+          Text(
+            '$minutes phút • $calories kcal',
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
         ],
       ),
     );
@@ -680,7 +754,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         alignment: Alignment.centerRight,
-        decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Icon(Icons.delete_outline, color: scheme.onErrorContainer),
       ),
       child: Card(
@@ -692,7 +769,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
             foregroundColor: kind.color,
             child: Icon(kind.icon),
           ),
-          title: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          title: Text(
+            w.name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Column(
@@ -703,8 +783,14 @@ class _WorkoutPageState extends State<WorkoutPage> {
                   runSpacing: 4,
                   children: [
                     SportChip(Icons.timer_outlined, '${w.minutes} phút'),
-                    SportChip(Icons.local_fire_department_outlined, '${w.calories} kcal'),
-                    SportChip(Icons.schedule, '${_two(w.date.hour)}:${_two(w.date.minute)}'),
+                    SportChip(
+                      Icons.local_fire_department_outlined,
+                      '${w.calories} kcal',
+                    ),
+                    SportChip(
+                      Icons.schedule,
+                      '${_two(w.date.hour)}:${_two(w.date.minute)}',
+                    ),
                   ],
                 ),
                 if (w.note.isNotEmpty)
@@ -714,7 +800,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       w.note,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
               ],
@@ -733,7 +822,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
             },
             itemBuilder: (_) => const [
               PopupMenuItem<String>(value: 'edit', child: Text('Sửa')),
-              PopupMenuItem<String>(value: 'dup', child: Text('Nhân đôi (tập lại)')),
+              PopupMenuItem<String>(
+                value: 'dup',
+                child: Text('Nhân đôi (tập lại)'),
+              ),
               PopupMenuItem<String>(value: 'del', child: Text('Xoá')),
             ],
           ),
@@ -757,13 +849,27 @@ class _Pill extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(color: color.withAlpha(40), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(
+          color: color.withAlpha(40),
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: color.withAlpha(225))),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: color.withAlpha(225)),
+            ),
           ],
         ),
       ),
@@ -826,7 +932,11 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
     super.initState();
     final w = widget.existing;
     _name = TextEditingController(text: w?.name ?? widget.initialName ?? '');
-    _minutes = TextEditingController(text: w != null ? '${w.minutes}' : (widget.initialMinutes != null ? '${widget.initialMinutes}' : ''));
+    _minutes = TextEditingController(
+      text: w != null
+          ? '${w.minutes}'
+          : (widget.initialMinutes != null ? '${widget.initialMinutes}' : ''),
+    );
     _weight = TextEditingController(text: '60');
     _calories = TextEditingController(text: w != null ? '${w.calories}' : '');
     _note = TextEditingController(text: w?.note ?? widget.initialNote ?? '');
@@ -848,7 +958,11 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
     final m = int.tryParse(_minutes.text.trim());
     final w = double.tryParse(_weight.text.trim().replaceAll(',', '.'));
     if (m == null || m <= 0 || w == null || w <= 0) return null;
-    return GoalRules.estimateCalories(met: sportKindByKey(_kindKey).met, weightKg: w, minutes: m);
+    return GoalRules.estimateCalories(
+      met: sportKindByKey(_kindKey).met,
+      weightKg: w,
+      minutes: m,
+    );
   }
 
   Future<void> _pickDate() async {
@@ -860,7 +974,15 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
       lastDate: now,
     );
     if (picked != null) {
-      setState(() => _date = DateTime(picked.year, picked.month, picked.day, _date.hour, _date.minute));
+      setState(
+        () => _date = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _date.hour,
+          _date.minute,
+        ),
+      );
     }
   }
 
@@ -884,7 +1006,11 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
         setState(() => _error = 'Cân nặng phải là số lớn hơn 0.');
         return;
       }
-      calories = GoalRules.estimateCalories(met: sportKindByKey(_kindKey).met, weightKg: weight, minutes: minutes);
+      calories = GoalRules.estimateCalories(
+        met: sportKindByKey(_kindKey).met,
+        weightKg: weight,
+        minutes: minutes,
+      );
     }
     final typed = _name.text.trim();
     final name = typed.isNotEmpty ? typed : sportKindByKey(_kindKey).label;
@@ -928,7 +1054,9 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
             TextField(
               controller: _name,
               decoration: InputDecoration(
-                labelText: _editing ? 'Tên buổi tập' : 'Tên buổi tập (tuỳ chọn)',
+                labelText: _editing
+                    ? 'Tên buổi tập'
+                    : 'Tên buổi tập (tuỳ chọn)',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -937,19 +1065,27 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
               controller: _minutes,
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Thời lượng (phút)', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Thời lượng (phút)',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             if (_editing)
               TextField(
                 controller: _calories,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Calo đốt (kcal)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Calo đốt (kcal)',
+                  border: OutlineInputBorder(),
+                ),
               )
             else ...[
               TextField(
                 controller: _weight,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
                   labelText: 'Cân nặng (kg)',
@@ -960,7 +1096,10 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
               if (estimate != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: SportChip(Icons.local_fire_department_outlined, 'Ước tính ≈ $estimate kcal'),
+                  child: SportChip(
+                    Icons.local_fire_department_outlined,
+                    'Ước tính ≈ $estimate kcal',
+                  ),
                 ),
             ],
             const SizedBox(height: 12),
@@ -969,24 +1108,35 @@ class _WorkoutDialogState extends State<_WorkoutDialog> {
               child: OutlinedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                label: Text('Ngày tập: ${_date.day}/${_date.month}/${_date.year}'),
+                label: Text(
+                  'Ngày tập: ${_date.day}/${_date.month}/${_date.year}',
+                ),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _note,
               maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Ghi chú (tuỳ chọn)', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Ghi chú (tuỳ chọn)',
+                border: OutlineInputBorder(),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ],
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Huỷ'),
+        ),
         FilledButton(onPressed: _submit, child: const Text('Lưu')),
       ],
     );
@@ -1039,7 +1189,11 @@ class _StepsDialogState extends State<_StepsDialog> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Số bước', errorText: _error, border: const OutlineInputBorder()),
+            decoration: InputDecoration(
+              labelText: 'Số bước',
+              errorText: _error,
+              border: const OutlineInputBorder(),
+            ),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 12),
@@ -1054,7 +1208,10 @@ class _StepsDialogState extends State<_StepsDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Huỷ'),
+        ),
         FilledButton(onPressed: _submit, child: const Text('Lưu')),
       ],
     );

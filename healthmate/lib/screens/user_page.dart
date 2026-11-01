@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:image_picker/image_picker.dart';
 
+import '../models/health_metric.dart';
 import '../models/user.dart';
+import '../repositories/health_repository.dart';
 import '../services/auth_service.dart';
 import '../widgets/user_avatar.dart';
 
@@ -69,6 +71,10 @@ class _UserPageState extends State<UserPage> {
         weightKg: profile.weightKg,
         avatarBase64: profile.avatarBase64,
         avatarIndex: profile.avatarIndex,
+        targetWeightKg: profile.targetWeightKg,
+        dailyCalorieTarget: profile.dailyCalorieTarget,
+        dailyStepsTarget: profile.dailyStepsTarget,
+        dailyWaterTargetMl: profile.dailyWaterTargetMl,
       );
       await _auth.updateProfile(updated);
       if (mounted) _showMessage('Đã lưu hồ sơ.');
@@ -79,7 +85,38 @@ class _UserPageState extends State<UserPage> {
     }
   }
 
-  Future<void> _showJourneySheet() async {
+  String _formatJourneyDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  String _weightChangeNote(List<HealthMetric> history, int index) {
+    if (index >= history.length - 1) return 'Bắt đầu hành trình';
+    final current = history[index].weightKg!;
+    final previous = history[index + 1].weightKg!;
+    final change = current - previous;
+    if (change.abs() < 0.05) return 'Không thay đổi';
+    return change < 0
+        ? 'Giảm ${change.abs().toStringAsFixed(1)} kg'
+        : 'Tăng ${change.toStringAsFixed(1)} kg';
+  }
+
+
+  Future<void> _showJourneySheet(AppUser profile) async {
+    final healthRepository = HealthRepository(userId: profile.id);
+    final healthSnapshot = await healthRepository.watchAll().first;
+    final weightHistory = healthSnapshot
+        .where((metric) => metric.weightKg != null)
+        .toList();
+    final currentWeight = weightHistory.isNotEmpty
+        ? weightHistory.first.weightKg
+        : profile.weightKg;
+    if (!mounted) return;
+    final targetWeight = profile.targetWeightKg;
+    final remaining = currentWeight != null && targetWeight != null
+        ? (currentWeight - targetWeight).abs()
+        : null;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -89,30 +126,59 @@ class _UserPageState extends State<UserPage> {
         child: Container(
           constraints: const BoxConstraints(maxHeight: 620),
           padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)))),
+              Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)))),
               const SizedBox(height: 16),
-              Text('Hành trình của bạn', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const Text('Hành trình của bạn', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text('Ngày đến hạn: 12/10/2026 · Còn 18 ngày'),
+              Text(
+                profile.targetWeightKg == null
+                    ? 'Chưa thiết lập mục tiêu cân nặng'
+                    : 'Mục tiêu: ${profile.targetWeightKg!.toStringAsFixed(1)} kg',
+              ),
               const SizedBox(height: 4),
-              const Text('Còn 3,4 kg nữa để đạt mục tiêu 65,0 kg', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+              Text(
+                remaining == null
+                    ? 'Hãy cập nhật cân nặng và mục tiêu để theo dõi hành trình.'
+                    : 'Còn ${remaining.toStringAsFixed(1)} kg để đạt mục tiêu',
+                style: const TextStyle(color: Color(0xFFB779FF), fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
-              const Text('Lịch sử hành trình', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Lịch sử hành trình', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 12),
               Expanded(
                 child: ListView(
-                  children: const [
-                    _JourneyHistoryTile(date: '12/09/2026', weight: '70,0 kg', note: 'Bắt đầu hành trình', isFirst: true),
-                    _JourneyHistoryTile(date: '20/09/2026', weight: '69,2 kg', note: 'Giảm 0,8 kg'),
-                    _JourneyHistoryTile(date: '28/09/2026', weight: '68,8 kg', note: 'Giảm 0,4 kg'),
-                    _JourneyHistoryTile(date: 'Hôm nay', weight: '68,4 kg', note: 'Hiện tại', isLast: true),
+                  children: [
+                    if (weightHistory.isNotEmpty)
+                      for (var index = 0; index < weightHistory.length; index++)
+                        _JourneyHistoryTile(
+                          date: _formatJourneyDate(weightHistory[index].recordedAt),
+                          weight: '${weightHistory[index].weightKg!.toStringAsFixed(1)} kg',
+                          note: index == weightHistory.length - 1
+                              ? 'Bắt đầu hành trình'
+                              : _weightChangeNote(weightHistory, index),
+                          isFirst: index == weightHistory.length - 1,
+                          isLast: index == 0,
+                        )
+                    else if (currentWeight != null)
+                      _JourneyHistoryTile(
+                        date: 'Hiện tại',
+                        weight: '${currentWeight.toStringAsFixed(1)} kg',
+                        note: 'Cân nặng trong hồ sơ',
+                        isFirst: true,
+                        isLast: true,
+                      )
+                    else
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('Chưa có cân nặng hiện tại.'),
+                      ),
                   ],
                 ),
               ),
@@ -137,25 +203,37 @@ class _UserPageState extends State<UserPage> {
         builder: (context, setSheetState) => SafeArea(
           child: Container(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)))),
+                  Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)))),
                   const SizedBox(height: 16),
                   Row(children: [
-                    Expanded(child: Text('Mục tiêu của tôi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))),
-                    Text('Bấm − hoặc + để chỉnh', style: Theme.of(context).textTheme.bodySmall),
+                    Expanded(
+                      child: Text(
+                        'Mục tiêu của tôi',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Bấm − hoặc + để chỉnh',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                    ),
                   ]),
                   const SizedBox(height: 20),
-                  _GoalEditorRow(icon: Icons.monitor_weight_outlined, color: Colors.indigo, title: 'Cân nặng mục tiêu', subtitle: 'Hiện tại 68,4 kg', value: '${targetWeight.toStringAsFixed(1)} kg', onMinus: () => setSheetState(() => targetWeight = (targetWeight - .5).clamp(30, 300)), onPlus: () => setSheetState(() => targetWeight = (targetWeight + .5).clamp(30, 300))),
-                  _GoalEditorRow(icon: Icons.local_fire_department_outlined, color: Colors.orange, title: 'Calo mỗi ngày', subtitle: 'Trung bình tuần này 1.850', value: '$dailyCalories kcal', onMinus: () => setSheetState(() => dailyCalories = (dailyCalories - 100).clamp(500, 10000)), onPlus: () => setSheetState(() => dailyCalories = (dailyCalories + 100).clamp(500, 10000))),
-                  _GoalEditorRow(icon: Icons.directions_walk_outlined, color: Colors.deepOrange, title: 'Bước chân mỗi ngày', subtitle: 'Hôm nay 6.230 bước', value: '${dailySteps.toString()} bước', onMinus: () => setSheetState(() => dailySteps = (dailySteps - 500).clamp(1000, 100000)), onPlus: () => setSheetState(() => dailySteps = (dailySteps + 500).clamp(1000, 100000))),
-                  _GoalEditorRow(icon: Icons.water_drop_outlined, color: Colors.blue, title: 'Nước uống mỗi ngày', subtitle: 'Hôm nay 750 ml', value: '$dailyWater ml', onMinus: () => setSheetState(() => dailyWater = (dailyWater - 250).clamp(250, 10000)), onPlus: () => setSheetState(() => dailyWater = (dailyWater + 250).clamp(250, 10000))),
+                  _GoalEditorRow(icon: Icons.monitor_weight_outlined, color: Colors.indigo, title: 'Cân nặng mục tiêu', subtitle: profile.weightKg == null ? 'Chưa có cân nặng hiện tại' : 'Hiện tại ${profile.weightKg!.toStringAsFixed(1)} kg', value: '${targetWeight.toStringAsFixed(1)} kg', onMinus: () => setSheetState(() => targetWeight = (targetWeight - .5).clamp(30, 300)), onPlus: () => setSheetState(() => targetWeight = (targetWeight + .5).clamp(30, 300))),
+                  _GoalEditorRow(icon: Icons.local_fire_department_outlined, color: Colors.orange, title: 'Calo mỗi ngày', subtitle: 'Mục tiêu lấy từ hồ sơ', value: '$dailyCalories kcal', onMinus: () => setSheetState(() => dailyCalories = (dailyCalories - 100).clamp(500, 10000)), onPlus: () => setSheetState(() => dailyCalories = (dailyCalories + 100).clamp(500, 10000))),
+                  _GoalEditorRow(icon: Icons.directions_walk_outlined, color: Colors.deepOrange, title: 'Bước chân mỗi ngày', subtitle: 'Mục tiêu vận động hôm nay', value: '${dailySteps.toString()} bước', onMinus: () => setSheetState(() => dailySteps = (dailySteps - 500).clamp(1000, 100000)), onPlus: () => setSheetState(() => dailySteps = (dailySteps + 500).clamp(1000, 100000))),
+                  _GoalEditorRow(icon: Icons.water_drop_outlined, color: Colors.blue, title: 'Nước uống mỗi ngày', subtitle: 'Theo dõi trong mục Dinh dưỡng', value: '$dailyWater ml', onMinus: () => setSheetState(() => dailyWater = (dailyWater - 250).clamp(250, 10000)), onPlus: () => setSheetState(() => dailyWater = (dailyWater + 250).clamp(250, 10000))),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
@@ -420,10 +498,12 @@ class _UserPageState extends State<UserPage> {
                 Center(child: Text(profile.email, style: Theme.of(context).textTheme.bodyMedium)),
                 const SizedBox(height: 24),
                 _JourneyCard(
-                  onTap: _showJourneySheet,
+                  profile: profile,
+                  onTap: () => _showJourneySheet(profile),
                 ),
                 const SizedBox(height: 12),
                 _GoalSummaryCard(
+                  profile: profile,
                   onTap: () => _showGoalSheet(profile),
                 ),
                 const SizedBox(height: 28),
@@ -477,16 +557,16 @@ class _JourneyHistoryTile extends StatelessWidget {
           SizedBox(
             width: 28,
             child: Column(children: [
-              Container(width: 14, height: 14, decoration: BoxDecoration(color: isLast ? Colors.deepPurple : Colors.indigo, shape: BoxShape.circle)),
-              if (!isLast) Container(width: 2, height: 52, color: Colors.indigo.shade100),
+              Container(width: 14, height: 14, decoration: BoxDecoration(color: isLast ? const Color(0xFFB779FF) : const Color(0xFF6C4DFF), shape: BoxShape.circle)),
+              if (!isLast) Container(width: 2, height: 52, color: const Color(0xFF493C63)),
             ]),
           ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(date, style: const TextStyle(fontWeight: FontWeight.w600)), const SizedBox(height: 3), Text(note, style: Theme.of(context).textTheme.bodySmall)]),
-                Text(weight, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(date, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)), const SizedBox(height: 3), Text(note, style: const TextStyle(color: Color(0xFFB8B0C9)))]),
+                Text(weight, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB779FF))),
               ]),
             ),
           ),
@@ -494,7 +574,9 @@ class _JourneyHistoryTile extends StatelessWidget {
       );
 }
 class _JourneyCard extends StatelessWidget {
-  const _JourneyCard({required this.onTap});
+  const _JourneyCard({required this.profile, required this.onTap});
+
+  final AppUser profile;
   final VoidCallback onTap;
 
   @override
@@ -510,13 +592,36 @@ class _JourneyCard extends StatelessWidget {
                 TextButton(onPressed: onTap, child: const Text('Chi tiết')),
               ]),
               const SizedBox(height: 8),
-              const Text('Ngày đến hạn: 12/10/2026 · Còn 18 ngày'),
+              Text(
+                profile.targetWeightKg == null
+                    ? 'Chưa thiết lập ngày đến hạn'
+                    : 'Đang theo dõi mục tiêu ${profile.targetWeightKg!.toStringAsFixed(1)} kg',
+              ),
               const SizedBox(height: 4),
-              const Text('Còn 3,4 kg nữa · Mục tiêu 65,0 kg', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+              Text(
+                profile.weightKg == null || profile.targetWeightKg == null
+                    ? 'Cập nhật cân nặng để xem tiến độ'
+                    : 'Còn ${(profile.weightKg! - profile.targetWeightKg!).abs().toStringAsFixed(1)} kg để đạt mục tiêu',
+                style: const TextStyle(color: Color(0xFFB779FF), fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 14),
-              const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Bắt đầu\n70,0 kg', style: TextStyle(fontWeight: FontWeight.bold)), Text('Hiện tại\n68,4 kg', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple)), Text('Mục tiêu\n65,0 kg', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Hiện tại\n${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Mục tiêu\n${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
               const SizedBox(height: 10),
-              ClipRRect(borderRadius: BorderRadius.circular(8), child: const LinearProgressIndicator(value: .65, minHeight: 10)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: profile.weightKg != null && profile.targetWeightKg != null
+                      ? (1 - ((profile.weightKg! - profile.targetWeightKg!).abs() / profile.weightKg!)).clamp(0.0, 1.0)
+                      : 0,
+                  minHeight: 10,
+                ),
+              ),
             ]),
           ),
         ),
@@ -525,16 +630,24 @@ class _JourneyCard extends StatelessWidget {
 
 
 class _GoalSummaryCard extends StatelessWidget {
-  const _GoalSummaryCard({required this.onTap});
+  const _GoalSummaryCard({required this.profile, required this.onTap});
+
+  final AppUser profile;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Card(
         child: ListTile(
           onTap: onTap,
-          leading: const CircleAvatar(child: Icon(Icons.flag_outlined)),
-          title: const Text('Mục tiêu của tôi', style: TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: const Text('Cân nặng mục tiêu · 65,0 kg\nTiến độ hiện tại 68,4 kg'),
+          leading: const CircleAvatar(
+            backgroundColor: Color(0xFF382B53),
+            child: Icon(Icons.flag_outlined, color: Color(0xFFB779FF)),
+          ),
+          title: const Text('Mục tiêu của tôi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          subtitle: Text(
+            'Cân nặng mục tiêu · ${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg\n'
+            'Tiến độ hiện tại ${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg',
+          ),
           trailing: const Icon(Icons.chevron_right),
         ),
       );
@@ -574,14 +687,14 @@ class _GoalEditorRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFFB8B0C9))),
                 ],
               ),
             ),
             IconButton.filledTonal(onPressed: onMinus, icon: const Icon(Icons.remove)),
             const SizedBox(width: 4),
-            SizedBox(width: 72, child: Text(value, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            SizedBox(width: 72, child: Text(value, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))),
             const SizedBox(width: 4),
             IconButton.filled(onPressed: onPlus, icon: const Icon(Icons.add)),
           ],
