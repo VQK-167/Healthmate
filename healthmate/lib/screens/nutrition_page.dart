@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../models/nutrition.dart';
@@ -15,7 +14,6 @@ class NutritionPage extends StatefulWidget {
     this.waterGoalMl,
   });
 
- 
   final NutritionStore? store;
 
   /// Mục tiêu calo mỗi ngày, truyền từ `AppUser.dailyCalorieTarget`.
@@ -39,14 +37,13 @@ class _NutritionPageState extends State<NutritionPage> {
   late Stream<List<WaterLog>> _waterStream;
   int _waterGoalMl = defaultWaterGoalMl;
 
- 
   final Set<String> _hiddenMeals = {};
 
   @override
   void initState() {
     super.initState();
     _store = widget.store ?? createDefaultNutritionStore();
-    if (_store is InMemoryNutritionStore) {
+    if (widget.store == null && _store is InMemoryNutritionStore) {
       _ownedStore = _store;
     }
     _day = startOfDay(DateTime.now());
@@ -68,11 +65,14 @@ class _NutritionPageState extends State<NutritionPage> {
 
   void _loadWaterGoal() {
     if (widget.waterGoalMl != null) return; // đã được truyền từ Profile
-    _store.getWaterGoalMl().then((goal) {
-      if (mounted) setState(() => _waterGoalMl = goal);
-    }).catchError((_) {
-      // Giữ mục tiêu mặc định.
-    });
+    _store
+        .getWaterGoalMl()
+        .then((goal) {
+          if (mounted) setState(() => _waterGoalMl = goal);
+        })
+        .catchError((_) {
+          // Giữ mục tiêu mặc định.
+        });
   }
 
   // ---------- Ngày đang xem ----------
@@ -137,9 +137,8 @@ class _NutritionPageState extends State<NutritionPage> {
   }
 
   Future<void> _addMeal() async {
-    final meal = await Navigator.of(context).push<Meal>(
-      MaterialPageRoute(builder: (_) => const AddMealPage()),
-    );
+    final meal = await Navigator.of(context)
+        .push<Meal>(MaterialPageRoute(builder: (_) => const AddMealPage()));
     if (meal == null || !mounted) return;
     await _run(() => _store.addMeal(meal.copyWith(loggedAt: _stamp())));
   }
@@ -281,15 +280,17 @@ class _NutritionPageState extends State<NutritionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${s.mealCount} món · $mealTimes bữa',
-                style: TextStyle(color: cs.onSurfaceVariant)),
+            Text(
+              '${s.mealCount} món · $mealTimes bữa',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
             const SizedBox(height: 4),
             Text(
               '${_n(s.calories)} / ${_n(_calorieGoal)} kcal',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: over ? cs.error : cs.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: over ? cs.error : cs.primary,
+              ),
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
@@ -299,9 +300,11 @@ class _NutritionPageState extends State<NutritionPage> {
               color: over ? cs.error : null,
             ),
             const SizedBox(height: 8),
-            Text(over
-                ? 'Vượt ${_n(-remaining)} kcal'
-                : 'Còn lại ${_n(remaining)} kcal'),
+            Text(
+              over
+                  ? 'Vượt ${_n(-remaining)} kcal'
+                  : 'Còn lại ${_n(remaining)} kcal',
+            ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -342,8 +345,10 @@ class _NutritionPageState extends State<NutritionPage> {
               children: [
                 const Icon(Icons.water_drop_outlined),
                 const SizedBox(width: 8),
-                const Text('Nước uống',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Nước uống',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const Spacer(),
                 Text('$ml / $_waterGoalMl ml'),
               ],
@@ -366,17 +371,21 @@ class _NutritionPageState extends State<NutritionPage> {
               spacing: 8,
               children: [
                 OutlinedButton(
-                    onPressed: () => _addWater(250),
-                    child: const Text('+250 ml')),
+                  onPressed: () => _addWater(250),
+                  child: const Text('+250 ml'),
+                ),
                 OutlinedButton(
-                    onPressed: () => _addWater(500),
-                    child: const Text('+500 ml')),
+                  onPressed: () => _addWater(500),
+                  child: const Text('+500 ml'),
+                ),
                 TextButton(
-                    onPressed: logs.isEmpty ? null : () => _undoWater(logs),
-                    child: const Text('Hoàn tác')),
+                  onPressed: logs.isEmpty ? null : () => _undoWater(logs),
+                  child: const Text('Hoàn tác'),
+                ),
                 TextButton(
-                    onPressed: _showWaterHistory,
-                    child: const Text('Lịch sử')),
+                  onPressed: _showWaterHistory,
+                  child: const Text('Lịch sử'),
+                ),
               ],
             ),
           ],
@@ -403,7 +412,9 @@ class _NutritionPageState extends State<NutritionPage> {
                   Text(
                     'Lịch sử uống nước · ${sumWaterMl(logs)} ml',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (logs.isEmpty)
@@ -446,22 +457,24 @@ class _NutritionPageState extends State<NutritionPage> {
           children: [
             Text(
               type.label,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            Text('${_n(sumCalories(meals))} kcal',
-                style: TextStyle(color: cs.onSurfaceVariant)),
+            Text(
+              '${_n(sumCalories(meals))} kcal',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
           ],
         ),
       ),
       if (meals.isEmpty)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          child: Text('Chưa có món nào',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          child: Text(
+            'Chưa có món nào',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
         ),
       for (final meal in meals) _mealTile(cs, meal),
     ];
@@ -486,8 +499,10 @@ class _NutritionPageState extends State<NutritionPage> {
             margin: EdgeInsets.zero,
             child: ListTile(
               onTap: () => _showMealDetail(meal),
-              title: Text(meal.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                meal.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               subtitle: Text(
                 'x${_q(meal.quantity)} phần · P ${_q(meal.totalProtein)}g · '
                 'C ${_q(meal.totalCarbs)}g · F ${_q(meal.totalFat)}g',
@@ -495,9 +510,10 @@ class _NutritionPageState extends State<NutritionPage> {
               trailing: Text(
                 '${_n(meal.totalCalories)} kcal',
                 style: TextStyle(
-                    color: cs.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16),
+                  color: cs.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -517,20 +533,28 @@ class _NutritionPageState extends State<NutritionPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(meal.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 20)),
+              Text(
+                meal.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
               const SizedBox(height: 4),
               Text('${meal.mealType.label} · ${_time(meal.loggedAt)}'),
               const SizedBox(height: 12),
               Text('Số phần: ${_q(meal.quantity)}'),
               Text('Mỗi phần: ${_n(meal.calories)} kcal'),
-              Text('Tổng: ${_n(meal.totalCalories)} kcal',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Tổng: ${_n(meal.totalCalories)} kcal',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              Text('Protein ${_q(meal.totalProtein)}g · '
-                  'Carbs ${_q(meal.totalCarbs)}g · '
-                  'Fat ${_q(meal.totalFat)}g'),
+              Text(
+                'Protein ${_q(meal.totalProtein)}g · '
+                'Carbs ${_q(meal.totalCarbs)}g · '
+                'Fat ${_q(meal.totalFat)}g',
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [

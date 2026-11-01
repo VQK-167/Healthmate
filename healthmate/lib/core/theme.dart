@@ -34,6 +34,13 @@ class AppTheme {
         fontWeight: FontWeight.w800,
       ),
     ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: textPrimary),
+      bodyMedium: TextStyle(color: textPrimary),
+      bodySmall: TextStyle(color: textSecondary),
+      titleLarge: TextStyle(color: textPrimary),
+      titleMedium: TextStyle(color: textPrimary),
+    ),
     cardTheme: const CardThemeData(
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -48,7 +55,11 @@ class AppTheme {
       indicatorColor: Color(0xFFD7F1E4),
       height: 76,
       labelTextStyle: WidgetStatePropertyAll(
-        TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        TextStyle(
+          color: textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(

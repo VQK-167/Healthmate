@@ -693,6 +693,8 @@ class _WorkoutStatsPageState extends State<WorkoutStatsPage> {
 
   // ---------------- Khung thẻ dùng chung ----------------
 
+  Iterable<Widget> _optionalWidget(Widget? widget) => widget == null ? const [] : [widget];
+
   Widget _card({required String title, required Widget child, Widget? trailing}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -704,7 +706,7 @@ class _WorkoutStatsPageState extends State<WorkoutStatsPage> {
             Row(
               children: [
                 Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
-                if (trailing != null) trailing,
+                ..._optionalWidget(trailing),
               ],
             ),
             const SizedBox(height: 12),

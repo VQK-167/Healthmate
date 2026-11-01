@@ -14,17 +14,24 @@ void main() {
     addTearDown(tester.view.reset);
 
     final store = InMemoryNutritionStore();
-    addTearDown(store.dispose);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      store.dispose();
+    });
     if (withMeal) {
-      await store.addMeal(Meal(
-        name: 'Phở bò',
-        mealType: MealType.breakfast,
-        calories: 450,
-        loggedAt: DateTime.now(),
-      ));
+      await store.addMeal(
+        Meal(
+          name: 'Phở bò',
+          mealType: MealType.breakfast,
+          calories: 450,
+          loggedAt: DateTime.now(),
+        ),
+      );
     }
     await tester.pumpWidget(MaterialApp(home: NutritionPage(store: store)));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     return store;
   }
 
@@ -43,14 +50,17 @@ void main() {
   testWidgets('bấm +250 ml thì cộng vào lượng nước', (tester) async {
     await pumpPage(tester);
     await tester.tap(find.text('+250 ml'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     expect(find.text('250 / 2000 ml'), findsOneWidget);
   });
 
   testWidgets('vuốt sang trái để xóa món', (tester) async {
     await pumpPage(tester);
-    await tester.drag(find.text('Phở bò'), const Offset(-700, 0));
-    await tester.pumpAndSettle();
+    await tester.fling(find.text('Phở bò'), const Offset(-700, 0), 1000);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     expect(find.text('Phở bò'), findsNothing);
     expect(find.text('0 / 2000 kcal'), findsOneWidget);
   });
@@ -58,7 +68,8 @@ void main() {
   testWidgets('sang ngày hôm qua thì không thấy món hôm nay', (tester) async {
     await pumpPage(tester);
     await tester.tap(find.byTooltip('Ngày trước'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     expect(find.text('Phở bò'), findsNothing);
     expect(find.text('0 / 2000 kcal'), findsOneWidget);
   });
@@ -66,7 +77,8 @@ void main() {
   testWidgets('bấm vào món mở chi tiết có nút Sửa và Xóa', (tester) async {
     await pumpPage(tester);
     await tester.tap(find.text('Phở bò'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     expect(find.text('Sửa'), findsOneWidget);
     expect(find.text('Xóa'), findsOneWidget);
   });

@@ -87,9 +87,12 @@ class WorkoutPageState extends State<WorkoutPage> {
     if (e is ArgumentError) return '${e.message}';
     if (e is StateError) return e.message;
     if (e is FirebaseException) {
-      if (e.code == 'permission-denied')
+      if (e.code == 'permission-denied') {
         return 'Không có quyền ghi dữ liệu. Kiểm tra Firestore Rules.';
-      if (e.code == 'unavailable') return 'Mất kết nối mạng. Vui lòng thử lại.';
+      }
+      if (e.code == 'unavailable') {
+        return 'Mất kết nối mạng. Vui lòng thử lại.';
+      }
       return 'Lỗi Firestore (${e.code}).';
     }
     return 'Có lỗi xảy ra: $e';
@@ -292,8 +295,9 @@ class WorkoutPageState extends State<WorkoutPage> {
               ),
             );
           }
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final all = snapshot.data!
               .where((w) => !_hiddenIds.contains(w.id))
               .toList();
@@ -339,14 +343,17 @@ class WorkoutPageState extends State<WorkoutPage> {
   List<Workout> _applyFilters(List<Workout> all) {
     final q = _query.trim().toLowerCase();
     return all.where((w) {
-      if (_kindFilter != 'all' && sportKindOf(w).key != _kindFilter)
+      if (_kindFilter != 'all' && sportKindOf(w).key != _kindFilter) {
         return false;
-      if (_rangeDays > 0 && !GoalRules.isInLastDays(w.date, _rangeDays))
+      }
+      if (_rangeDays > 0 && !GoalRules.isInLastDays(w.date, _rangeDays)) {
         return false;
+      }
       if (q.isNotEmpty &&
           !w.name.toLowerCase().contains(q) &&
-          !w.note.toLowerCase().contains(q))
+          !w.note.toLowerCase().contains(q)) {
         return false;
+      }
       return true;
     }).toList();
   }

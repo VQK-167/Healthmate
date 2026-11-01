@@ -913,14 +913,20 @@ class _CalorieStat extends StatelessWidget {
       Text(
         value,
         style: const TextStyle(
-          color: const Color(0xFF17352D),
+          color: Color(0xFF17352D),
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
       ),
-      Text(unit, style: const TextStyle(color: Color(0xFF5E786D), fontSize: 10)),
+      Text(
+        unit,
+        style: const TextStyle(color: Color(0xFF5E786D), fontSize: 10),
+      ),
       const SizedBox(height: 3),
-      Text(label, style: const TextStyle(color: Color(0xFF5E786D), fontSize: 11)),
+      Text(
+        label,
+        style: const TextStyle(color: Color(0xFF5E786D), fontSize: 11),
+      ),
     ],
   );
 }
@@ -1000,12 +1006,15 @@ class _MacroStat extends StatelessWidget {
     children: [
       Icon(icon, color: color, size: 22),
       const SizedBox(height: 5),
-      Text(label, style: const TextStyle(color: Color(0xFF5E786D), fontSize: 11)),
+      Text(
+        label,
+        style: const TextStyle(color: Color(0xFF5E786D), fontSize: 11),
+      ),
       const SizedBox(height: 3),
       Text(
         value,
         style: const TextStyle(
-          color: const Color(0xFF17352D),
+          color: Color(0xFF17352D),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

@@ -102,7 +102,6 @@ class _UserPageState extends State<UserPage> {
         : 'Tăng ${change.toStringAsFixed(1)} kg';
   }
 
-
   Future<void> _showJourneySheet(AppUser profile) async {
     final healthRepository = HealthRepository(userId: profile.id);
     final healthSnapshot = await healthRepository.watchAll().first;
@@ -133,9 +132,25 @@ class _UserPageState extends State<UserPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)))),
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC7DCD2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text('Hành trình của bạn', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text(
+                'Hành trình của bạn',
+                style: TextStyle(
+                  color: Color(0xFF17352D),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 profile.targetWeightKg == null
@@ -147,10 +162,19 @@ class _UserPageState extends State<UserPage> {
                 remaining == null
                     ? 'Hãy cập nhật cân nặng và mục tiêu để theo dõi hành trình.'
                     : 'Còn ${remaining.toStringAsFixed(1)} kg để đạt mục tiêu',
-                style: const TextStyle(color: Color(0xFFB779FF), fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Color(0xFF8F6BE8),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 20),
-              const Text('Lịch sử hành trình', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+              const Text(
+                'Lịch sử hành trình',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF17352D),
+                ),
+              ),
               const SizedBox(height: 12),
               Expanded(
                 child: ListView(
@@ -158,8 +182,11 @@ class _UserPageState extends State<UserPage> {
                     if (weightHistory.isNotEmpty)
                       for (var index = 0; index < weightHistory.length; index++)
                         _JourneyHistoryTile(
-                          date: _formatJourneyDate(weightHistory[index].recordedAt),
-                          weight: '${weightHistory[index].weightKg!.toStringAsFixed(1)} kg',
+                          date: _formatJourneyDate(
+                            weightHistory[index].recordedAt,
+                          ),
+                          weight:
+                              '${weightHistory[index].weightKg!.toStringAsFixed(1)} kg',
                           note: index == weightHistory.length - 1
                               ? 'Bắt đầu hành trình'
                               : _weightChangeNote(weightHistory, index),
@@ -188,6 +215,7 @@ class _UserPageState extends State<UserPage> {
       ),
     );
   }
+
   Future<void> _showGoalSheet(AppUser profile) async {
     var targetWeight = profile.targetWeightKg ?? 65.0;
     var dailyCalories = profile.dailyCalorieTarget ?? 2000;
@@ -205,35 +233,107 @@ class _UserPageState extends State<UserPage> {
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)))),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                      child: Text(
-                        'Mục tiêu của tôi',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC7DCD2),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    Text(
-                      'Bấm − hoặc + để chỉnh',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                    ),
-                  ]),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Mục tiêu của tôi',
+                          style: const TextStyle(
+                            color: Color(0xFF17352D),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Bấm − hoặc + để chỉnh',
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
-                  _GoalEditorRow(icon: Icons.monitor_weight_outlined, color: Colors.indigo, title: 'Cân nặng mục tiêu', subtitle: profile.weightKg == null ? 'Chưa có cân nặng hiện tại' : 'Hiện tại ${profile.weightKg!.toStringAsFixed(1)} kg', value: '${targetWeight.toStringAsFixed(1)} kg', onMinus: () => setSheetState(() => targetWeight = (targetWeight - .5).clamp(30, 300)), onPlus: () => setSheetState(() => targetWeight = (targetWeight + .5).clamp(30, 300))),
-                  _GoalEditorRow(icon: Icons.local_fire_department_outlined, color: Colors.orange, title: 'Calo mỗi ngày', subtitle: 'Mục tiêu lấy từ hồ sơ', value: '$dailyCalories kcal', onMinus: () => setSheetState(() => dailyCalories = (dailyCalories - 100).clamp(500, 10000)), onPlus: () => setSheetState(() => dailyCalories = (dailyCalories + 100).clamp(500, 10000))),
-                  _GoalEditorRow(icon: Icons.directions_walk_outlined, color: Colors.deepOrange, title: 'Bước chân mỗi ngày', subtitle: 'Mục tiêu vận động hôm nay', value: '${dailySteps.toString()} bước', onMinus: () => setSheetState(() => dailySteps = (dailySteps - 500).clamp(1000, 100000)), onPlus: () => setSheetState(() => dailySteps = (dailySteps + 500).clamp(1000, 100000))),
-                  _GoalEditorRow(icon: Icons.water_drop_outlined, color: Colors.blue, title: 'Nước uống mỗi ngày', subtitle: 'Theo dõi trong mục Dinh dưỡng', value: '$dailyWater ml', onMinus: () => setSheetState(() => dailyWater = (dailyWater - 250).clamp(250, 10000)), onPlus: () => setSheetState(() => dailyWater = (dailyWater + 250).clamp(250, 10000))),
+                  _GoalEditorRow(
+                    icon: Icons.monitor_weight_outlined,
+                    color: Colors.indigo,
+                    title: 'Cân nặng mục tiêu',
+                    subtitle: profile.weightKg == null
+                        ? 'Chưa có cân nặng hiện tại'
+                        : 'Hiện tại ${profile.weightKg!.toStringAsFixed(1)} kg',
+                    value: '${targetWeight.toStringAsFixed(1)} kg',
+                    onMinus: () => setSheetState(
+                      () => targetWeight = (targetWeight - .5).clamp(30, 300),
+                    ),
+                    onPlus: () => setSheetState(
+                      () => targetWeight = (targetWeight + .5).clamp(30, 300),
+                    ),
+                  ),
+                  _GoalEditorRow(
+                    icon: Icons.local_fire_department_outlined,
+                    color: Colors.orange,
+                    title: 'Calo mỗi ngày',
+                    subtitle: 'Mục tiêu lấy từ hồ sơ',
+                    value: '$dailyCalories kcal',
+                    onMinus: () => setSheetState(
+                      () => dailyCalories = (dailyCalories - 100).clamp(
+                        500,
+                        10000,
+                      ),
+                    ),
+                    onPlus: () => setSheetState(
+                      () => dailyCalories = (dailyCalories + 100).clamp(
+                        500,
+                        10000,
+                      ),
+                    ),
+                  ),
+                  _GoalEditorRow(
+                    icon: Icons.directions_walk_outlined,
+                    color: Colors.deepOrange,
+                    title: 'Bước chân mỗi ngày',
+                    subtitle: 'Mục tiêu vận động hôm nay',
+                    value: '${dailySteps.toString()} bước',
+                    onMinus: () => setSheetState(
+                      () => dailySteps = (dailySteps - 500).clamp(1000, 100000),
+                    ),
+                    onPlus: () => setSheetState(
+                      () => dailySteps = (dailySteps + 500).clamp(1000, 100000),
+                    ),
+                  ),
+                  _GoalEditorRow(
+                    icon: Icons.water_drop_outlined,
+                    color: Colors.blue,
+                    title: 'Nước uống mỗi ngày',
+                    subtitle: 'Theo dõi trong mục Dinh dưỡng',
+                    value: '$dailyWater ml',
+                    onMinus: () => setSheetState(
+                      () => dailyWater = (dailyWater - 250).clamp(250, 10000),
+                    ),
+                    onPlus: () => setSheetState(
+                      () => dailyWater = (dailyWater + 250).clamp(250, 10000),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
@@ -303,6 +403,7 @@ class _UserPageState extends State<UserPage> {
       ),
     );
   }
+
   Future<void> _showPresetAvatars(AppUser profile) async {
     const avatarCount = 8;
     await showModalBottomSheet<void>(
@@ -327,17 +428,13 @@ class _UserPageState extends State<UserPage> {
           onTap: () async {
             Navigator.pop(context);
             await _saveAvatar(
-              profile.copyWith(
-                avatarIndex: index,
-                clearAvatarBase64: true,
-              ),
+              profile.copyWith(avatarIndex: index, clearAvatarBase64: true),
             );
           },
         ),
       ),
     );
   }
-
 
   Future<void> _pickImage(AppUser profile) async {
     try {
@@ -351,10 +448,7 @@ class _UserPageState extends State<UserPage> {
       final resized = image_lib.copyResize(original, width: 200, height: 200);
       final bytes = image_lib.encodeJpg(resized, quality: 80);
       await _saveAvatar(
-        profile.copyWith(
-          avatarBase64: base64Encode(bytes),
-          avatarIndex: null,
-        ),
+        profile.copyWith(avatarBase64: base64Encode(bytes), avatarIndex: null),
       );
     } catch (_) {
       if (mounted) _showMessage('Không thể chọn ảnh. Vui lòng thử lại.');
@@ -400,8 +494,14 @@ class _UserPageState extends State<UserPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Lưu')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Lưu'),
+          ),
         ],
       ),
     );
@@ -420,9 +520,11 @@ class _UserPageState extends State<UserPage> {
       if (mounted) _showMessage('Đã đổi mật khẩu.');
     } on FirebaseAuthException catch (error) {
       if (mounted) {
-        _showMessage(error.code == 'wrong-password' || error.code == 'invalid-credential'
-            ? 'Mật khẩu hiện tại không đúng.'
-            : 'Không thể đổi mật khẩu.');
+        _showMessage(
+          error.code == 'wrong-password' || error.code == 'invalid-credential'
+              ? 'Mật khẩu hiện tại không đúng.'
+              : 'Không thể đổi mật khẩu.',
+        );
       }
     }
   }
@@ -432,9 +534,14 @@ class _UserPageState extends State<UserPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xóa tài khoản?'),
-        content: const Text('Toàn bộ hồ sơ của bạn sẽ bị xóa và không thể hoàn tác.'),
+        content: const Text(
+          'Toàn bộ hồ sơ của bạn sẽ bị xóa và không thể hoàn tác.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
@@ -448,15 +555,18 @@ class _UserPageState extends State<UserPage> {
       await _auth.deleteAccount();
     } on FirebaseAuthException catch (error) {
       if (mounted) {
-        _showMessage(error.code == 'requires-recent-login'
-            ? 'Vui lòng đăng nhập lại trước khi xóa tài khoản.'
-            : 'Không thể xóa tài khoản.');
+        _showMessage(
+          error.code == 'requires-recent-login'
+              ? 'Vui lòng đăng nhập lại trước khi xóa tài khoản.'
+              : 'Không thể xóa tài khoản.',
+        );
       }
     }
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -473,7 +583,9 @@ class _UserPageState extends State<UserPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final profile = snapshot.data ?? AppUser(
+          final profile =
+              snapshot.data ??
+              AppUser(
                 id: firebaseUser.uid,
                 email: firebaseUser.email ?? '',
                 displayName: firebaseUser.displayName ?? '',
@@ -494,8 +606,21 @@ class _UserPageState extends State<UserPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Center(child: Text(profile.displayName.isEmpty ? fallbackName : profile.displayName, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))),
-                Center(child: Text(profile.email, style: Theme.of(context).textTheme.bodyMedium)),
+                Center(
+                  child: Text(
+                    profile.displayName.isEmpty
+                        ? fallbackName
+                        : profile.displayName,
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    profile.email,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 _JourneyCard(
                   profile: profile,
@@ -507,23 +632,121 @@ class _UserPageState extends State<UserPage> {
                   onTap: () => _showGoalSheet(profile),
                 ),
                 const SizedBox(height: 28),
-                Text('Thông tin cá nhân', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'Thông tin cá nhân',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Họ tên', prefixIcon: Icon(Icons.person_outline)), validator: (value) => value == null || value.trim().isEmpty ? 'Họ tên không được để trống' : null),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ tên',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Họ tên không được để trống'
+                      : null,
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: _ageController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Tuổi', prefixIcon: Icon(Icons.cake_outlined)), validator: (value) { final age = int.tryParse(value?.trim() ?? ''); return age == null || age < 1 || age > 120 ? 'Tuổi phải từ 1 đến 120' : null; }),
+                TextFormField(
+                  controller: _ageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Tuổi',
+                    prefixIcon: Icon(Icons.cake_outlined),
+                  ),
+                  validator: (value) {
+                    final age = int.tryParse(value?.trim() ?? '');
+                    return age == null || age < 1 || age > 120
+                        ? 'Tuổi phải từ 1 đến 120'
+                        : null;
+                  },
+                ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(initialValue: _gender, decoration: const InputDecoration(labelText: 'Giới tính', prefixIcon: Icon(Icons.wc_outlined)), items: const [DropdownMenuItem(value: 'Nam', child: Text('Nam')), DropdownMenuItem(value: 'Nữ', child: Text('Nữ')), DropdownMenuItem(value: 'Khác', child: Text('Khác'))], onChanged: (value) => setState(() => _gender = value)),
+                DropdownButtonFormField<String>(
+                  initialValue: _gender,
+                  decoration: const InputDecoration(
+                    labelText: 'Giới tính',
+                    prefixIcon: Icon(Icons.wc_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Nam', child: Text('Nam')),
+                    DropdownMenuItem(value: 'Nữ', child: Text('Nữ')),
+                    DropdownMenuItem(value: 'Khác', child: Text('Khác')),
+                  ],
+                  onChanged: (value) => setState(() => _gender = value),
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: _heightController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Chiều cao (cm)', prefixIcon: Icon(Icons.height)), validator: (value) { final height = double.tryParse(value?.trim() ?? ''); return height == null || height < 50 || height > 250 ? 'Chiều cao phải từ 50 đến 250 cm' : null; }),
+                TextFormField(
+                  controller: _heightController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Chiều cao (cm)',
+                    prefixIcon: Icon(Icons.height),
+                  ),
+                  validator: (value) {
+                    final height = double.tryParse(value?.trim() ?? '');
+                    return height == null || height < 50 || height > 250
+                        ? 'Chiều cao phải từ 50 đến 250 cm'
+                        : null;
+                  },
+                ),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: _isSaving ? null : () => _saveProfile(profile), child: _isSaving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Lưu hồ sơ')),
+                FilledButton(
+                  onPressed: _isSaving ? null : () => _saveProfile(profile),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Lưu hồ sơ'),
+                ),
                 const SizedBox(height: 28),
-                Text('Tài khoản', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'Tài khoản',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                Card(child: Column(children: [ListTile(leading: const Icon(Icons.lock_outline), title: const Text('Đổi mật khẩu'), trailing: const Icon(Icons.chevron_right), onTap: _changePassword), ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)), onTap: () async { final ok = await _confirmSignOut(); if (ok) await _auth.signOut(); })])),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: const Text('Đổi mật khẩu'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _changePassword,
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.red),
+                        title: const Text(
+                          'Đăng xuất',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onTap: () async {
+                          final ok = await _confirmSignOut();
+                          if (ok) await _auth.signOut();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(onPressed: _deleteAccount, icon: const Icon(Icons.delete_forever, color: Colors.red), label: const Text('Xóa tài khoản', style: TextStyle(color: Colors.red)), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red))),
+                OutlinedButton.icon(
+                  onPressed: _deleteAccount,
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
+                  label: const Text(
+                    'Xóa tài khoản',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                ),
               ],
             ),
           );
@@ -532,7 +755,25 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  Future<bool> _confirmSignOut() async => await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: const Text('Đăng xuất?'), content: const Text('Bạn có chắc muốn đăng xuất không?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Đăng xuất'))])) ?? false;
+  Future<bool> _confirmSignOut() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Đăng xuất?'),
+          content: const Text('Bạn có chắc muốn đăng xuất không?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Đăng xuất'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 class _JourneyHistoryTile extends StatelessWidget {
@@ -552,27 +793,62 @@ class _JourneyHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Column(children: [
-              Container(width: 14, height: 14, decoration: BoxDecoration(color: isLast ? const Color(0xFFB779FF) : const Color(0xFF6C4DFF), shape: BoxShape.circle)),
-              if (!isLast) Container(width: 2, height: 52, color: const Color(0xFF493C63)),
-            ]),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(date, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)), const SizedBox(height: 3), Text(note, style: const TextStyle(color: Color(0xFFB8B0C9)))]),
-                Text(weight, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB779FF))),
-              ]),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(
+        width: 28,
+        child: Column(
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: isLast
+                    ? const Color(0xFF9F83E8)
+                    : const Color(0xFF75BFA0),
+                shape: BoxShape.circle,
+              ),
             ),
+            if (!isLast)
+              Container(width: 2, height: 52, color: const Color(0xFFD3E7DC)),
+          ],
+        ),
+      ),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF17352D),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(note, style: const TextStyle(color: Color(0xFF6E847C))),
+                ],
+              ),
+              Text(
+                weight,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF8F6BE8),
+                ),
+              ),
+            ],
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
+
 class _JourneyCard extends StatelessWidget {
   const _JourneyCard({required this.profile, required this.onTap});
 
@@ -581,53 +857,78 @@ class _JourneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text('Hành trình của bạn', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))),
-                TextButton(onPressed: onTap, child: const Text('Chi tiết')),
-              ]),
-              const SizedBox(height: 8),
-              Text(
-                profile.targetWeightKg == null
-                    ? 'Chưa thiết lập ngày đến hạn'
-                    : 'Đang theo dõi mục tiêu ${profile.targetWeightKg!.toStringAsFixed(1)} kg',
-              ),
-              const SizedBox(height: 4),
-              Text(
-                profile.weightKg == null || profile.targetWeightKg == null
-                    ? 'Cập nhật cân nặng để xem tiến độ'
-                    : 'Còn ${(profile.weightKg! - profile.targetWeightKg!).abs().toStringAsFixed(1)} kg để đạt mục tiêu',
-                style: const TextStyle(color: Color(0xFFB779FF), fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Hiện tại\n${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Mục tiêu\n${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: profile.weightKg != null && profile.targetWeightKg != null
-                      ? (1 - ((profile.weightKg! - profile.targetWeightKg!).abs() / profile.weightKg!)).clamp(0.0, 1.0)
-                      : 0,
-                  minHeight: 10,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Hành trình của bạn',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
                 ),
+                TextButton(onPressed: onTap, child: const Text('Chi tiết')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              profile.targetWeightKg == null
+                  ? 'Chưa thiết lập ngày đến hạn'
+                  : 'Đang theo dõi mục tiêu ${profile.targetWeightKg!.toStringAsFixed(1)} kg',
+            ),
+            const SizedBox(height: 4),
+            Text(
+              profile.weightKg == null || profile.targetWeightKg == null
+                  ? 'Cập nhật cân nặng để xem tiến độ'
+                  : 'Còn ${(profile.weightKg! - profile.targetWeightKg!).abs().toStringAsFixed(1)} kg để đạt mục tiêu',
+              style: const TextStyle(
+                color: Color(0xFF8F6BE8),
+                fontWeight: FontWeight.bold,
               ),
-            ]),
-          ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Hiện tại\n${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Mục tiêu\n${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value:
+                    profile.weightKg != null && profile.targetWeightKg != null
+                    ? (1 -
+                              ((profile.weightKg! - profile.targetWeightKg!)
+                                      .abs() /
+                                  profile.weightKg!))
+                          .clamp(0.0, 1.0)
+                    : 0,
+                minHeight: 10,
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
-
 
 class _GoalSummaryCard extends StatelessWidget {
   const _GoalSummaryCard({required this.profile, required this.onTap});
@@ -637,20 +938,23 @@ class _GoalSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: ListTile(
-          onTap: onTap,
-          leading: const CircleAvatar(
-            backgroundColor: Color(0xFF382B53),
-            child: Icon(Icons.flag_outlined, color: Color(0xFFB779FF)),
-          ),
-          title: const Text('Mục tiêu của tôi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-          subtitle: Text(
-            'Cân nặng mục tiêu · ${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg\n'
-            'Tiến độ hiện tại ${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-        ),
-      );
+    child: ListTile(
+      onTap: onTap,
+      leading: const CircleAvatar(
+        backgroundColor: Color(0xFFF0EAFE),
+        child: Icon(Icons.flag_outlined, color: Color(0xFF8F6BE8)),
+      ),
+      title: const Text(
+        'Mục tiêu của tôi',
+        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF17352D)),
+      ),
+      subtitle: Text(
+        'Cân nặng mục tiêu · ${profile.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg\n'
+        'Tiến độ hiện tại ${profile.weightKg?.toStringAsFixed(1) ?? '--'} kg',
+      ),
+      trailing: const Icon(Icons.chevron_right),
+    ),
+  );
 }
 
 class _GoalEditorRow extends StatelessWidget {
@@ -674,30 +978,53 @@ class _GoalEditorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 18),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundColor: color.withValues(alpha: .14),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFFB8B0C9))),
-                ],
-              ),
-            ),
-            IconButton.filledTonal(onPressed: onMinus, icon: const Icon(Icons.remove)),
-            const SizedBox(width: 4),
-            SizedBox(width: 72, child: Text(value, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))),
-            const SizedBox(width: 4),
-            IconButton.filled(onPressed: onPlus, icon: const Icon(Icons.add)),
-          ],
+    padding: const EdgeInsets.only(bottom: 18),
+    child: Row(
+      children: [
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: color.withValues(alpha: .14),
+          child: Icon(icon, color: color),
         ),
-      );
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF17352D),
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6E847C)),
+              ),
+            ],
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: onMinus,
+          icon: const Icon(Icons.remove),
+        ),
+        const SizedBox(width: 4),
+        SizedBox(
+          width: 72,
+          child: Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF17352D),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton.filled(onPressed: onPlus, icon: const Icon(Icons.add)),
+      ],
+    ),
+  );
 }
