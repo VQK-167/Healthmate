@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/health_metric.dart';
 import '../models/user.dart';
 import '../repositories/workout_repository.dart';
 import '../services/auth_service.dart';
