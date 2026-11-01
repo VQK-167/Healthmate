@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../core/goal_rules.dart';
 import '../models/workout.dart';
+import '../repositories/goal_repository.dart';
 import '../repositories/workout_repository.dart';
 import 'goal_page.dart';
 import 'workout_stats_page.dart';
@@ -34,6 +35,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   late Stream<List<Workout>> _workouts;
   late Stream<int> _steps;
   late Stream<double> _stepGoal;
+  late Stream<List<Goal>> _goalList;
 
   /// Các buổi tập vừa vuốt xoá, ẩn ngay trong lúc chờ Firestore cập nhật.
   final Set<String> _hiddenIds = <String>{};
@@ -60,6 +62,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
     _workouts = _repo.watchWorkouts();
     _steps = _repo.watchStepsToday();
     _stepGoal = _repo.watchGoal('steps');
+    _goalList = GoalRepository().watchGoals();
   }
 
   void _reload() => setState(_subscribe);
@@ -205,6 +208,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
     if (ok && mounted) setState(() => _hiddenIds.remove(w.id));
   }
 
+  void _openGoals() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalPage()));
+  }
+
   Future<void> _addSteps() async {
     final steps = await showDialog<int>(context: context, builder: (_) => const _StepsDialog());
     if (steps == null) return;
@@ -224,10 +231,10 @@ class _WorkoutPageState extends State<WorkoutPage> {
             icon: const Icon(Icons.insights_outlined),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutStatsPage())),
           ),
-          IconButton(
-            tooltip: 'Mục tiêu',
-            icon: const Icon(Icons.flag_outlined),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalPage())),
+          TextButton.icon(
+            onPressed: _openGoals,
+            icon: const Icon(Icons.flag_rounded),
+            label: const Text('Mục tiêu'),
           ),
         ],
       ),
@@ -269,6 +276,8 @@ class _WorkoutPageState extends State<WorkoutPage> {
               SportFadeIn(index: 2, child: _weekCard(all)),
               const SizedBox(height: 4),
               SportFadeIn(index: 3, child: _stepsCard()),
+              const SizedBox(height: 4),
+              SportFadeIn(index: 4, child: _goalShortcut()),
               const SizedBox(height: 16),
               Text('Lịch sử tập luyện', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
@@ -482,7 +491,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                         Text(
                           target > 0
                               ? (done ? 'Đã đạt mục tiêu' : '${(progress * 100).toStringAsFixed(0)}% mục tiêu')
-                              : 'Tạo mục tiêu bước chân (biểu tượng cờ) để theo dõi.',
+                              : 'Bấm “Mục tiêu” để đặt mục tiêu bước chân.',
                           style: TextStyle(fontSize: 12, color: done ? color : scheme.onSurfaceVariant),
                         ),
                       ],
@@ -493,6 +502,51 @@ class _WorkoutPageState extends State<WorkoutPage> {
                     icon: const Icon(Icons.add),
                     onPressed: _addSteps,
                   ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Thẻ mục tiêu nổi bật: bấm để xem hoặc đặt mục tiêu.
+  Widget _goalShortcut() {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _openGoals,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: StreamBuilder<List<Goal>>(
+            stream: _goalList,
+            builder: (context, snap) {
+              final count = snap.data?.length ?? 0;
+              return Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: scheme.primaryContainer,
+                    foregroundColor: scheme.onPrimaryContainer,
+                    child: const Icon(Icons.flag_rounded),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Mục tiêu của bạn', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          count > 0 ? 'Đang theo dõi $count mục tiêu' : 'Chưa có mục tiêu nào. Bấm để tạo mới.',
+                          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.tonal(onPressed: _openGoals, child: Text(count > 0 ? 'Xem' : 'Đặt mục tiêu')),
                 ],
               );
             },
