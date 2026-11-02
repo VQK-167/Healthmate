@@ -397,6 +397,10 @@ class _HomePageState extends State<HomePage> {
           weightKg: weight,
         ),
       );
+      final profile = await AuthService().watchProfile(user.uid).first;
+      if (profile != null) {
+        await AuthService().updateProfile(profile.copyWith(weightKg: weight));
+      }
       if (mounted) {
         _showHomeMessage('Đã cập nhật cân nặng và thêm vào Hành trình.');
       }

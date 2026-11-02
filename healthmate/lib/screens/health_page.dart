@@ -51,13 +51,13 @@ class _HealthPageState extends State<HealthPage> {
           if (metrics.isEmpty) {
             return _EmptyState(onAdd: () => _showAddSheet(context, repository, userId));
           }
-          final latest = metrics.first;
+          final summary = _mergeLatestMetrics(metrics);
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              if (latest.isAbnormal) const _WarningBanner(),
-              if (latest.isAbnormal) const SizedBox(height: 16),
-              _LatestSummary(metric: latest),
+              if (summary.isAbnormal) const _WarningBanner(),
+              if (summary.isAbnormal) const SizedBox(height: 16),
+              _LatestSummary(metric: summary),
               const SizedBox(height: 20),
               _WeightTrendChart(metrics: metrics),
               const SizedBox(height: 20),
@@ -79,12 +79,51 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
+  HealthMetric _mergeLatestMetrics(List<HealthMetric> metrics) {
+    final latest = metrics.first;
+    double? heightCm = latest.heightCm;
+    double? weightKg = latest.weightKg;
+    int? systolic = latest.systolic;
+    int? diastolic = latest.diastolic;
+    int? heartRate = latest.heartRate;
+
+    for (final metric in metrics.skip(1)) {
+      heightCm ??= metric.heightCm;
+      weightKg ??= metric.weightKg;
+      systolic ??= metric.systolic;
+      diastolic ??= metric.diastolic;
+      heartRate ??= metric.heartRate;
+      if (heightCm != null &&
+          weightKg != null &&
+          systolic != null &&
+          diastolic != null &&
+          heartRate != null) {
+        break;
+      }
+    }
+
+    return HealthMetric(
+      id: latest.id,
+      userId: latest.userId,
+      recordedAt: latest.recordedAt,
+      heightCm: heightCm,
+      weightKg: weightKg,
+      systolic: systolic,
+      diastolic: diastolic,
+      heartRate: heartRate,
+    );
+  }
+
   Future<void> _showAddSheet(BuildContext context, HealthRepository repository, String userId) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _AddMetricSheet(repository: repository, userId: userId),
+      builder: (context) => _AddMetricSheet(
+        repository: repository,
+        userId: userId,
+        syncProfile: widget.userId == null,
+      ),
     );
   }
 
@@ -97,6 +136,7 @@ class _HealthPageState extends State<HealthPage> {
         repository: repository,
         userId: metric.userId,
         existing: metric,
+        syncProfile: widget.userId == null,
       ),
     );
   }
@@ -520,12 +560,18 @@ class _HistoryTile extends StatelessWidget {
 }
 
 class _AddMetricSheet extends StatefulWidget {
-  const _AddMetricSheet({required this.repository, required this.userId, this.existing});
+  const _AddMetricSheet({
+    required this.repository,
+    required this.userId,
+    this.existing,
+    this.syncProfile = true,
+  });
   final HealthRepository repository;
   final String userId;
 
   /// When set, the sheet edits this check-in instead of creating a new one.
   final HealthMetric? existing;
+  final bool syncProfile;
 
   bool get isEditing => existing != null;
 
@@ -574,16 +620,28 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
         id: existing?.id ?? '',
         userId: widget.userId,
         recordedAt: existing?.recordedAt ?? DateTime.now(),
-        heightCm: _parseDouble(_heightController.text),
-        weightKg: _parseDouble(_weightController.text),
-        systolic: _parseInt(_systolicController.text),
-        diastolic: _parseInt(_diastolicController.text),
-        heartRate: _parseInt(_heartRateController.text),
+        heightCm: _parseDouble(_heightController.text) ?? existing?.heightCm,
+        weightKg: _parseDouble(_weightController.text) ?? existing?.weightKg,
+        systolic: _parseInt(_systolicController.text) ?? existing?.systolic,
+        diastolic: _parseInt(_diastolicController.text) ?? existing?.diastolic,
+        heartRate: _parseInt(_heartRateController.text) ?? existing?.heartRate,
       );
       if (existing == null) {
         await widget.repository.add(metric);
       } else {
         await widget.repository.update(metric);
+      }
+
+      if (widget.syncProfile) {
+        final profile = await AuthService().watchProfile(widget.userId).first;
+        if (profile != null) {
+          await AuthService().updateProfile(
+            profile.copyWith(
+              heightCm: metric.heightCm,
+              weightKg: metric.weightKg,
+            ),
+          );
+        }
       }
       if (mounted) Navigator.pop(context);
     } catch (_) {
