@@ -7,22 +7,28 @@ import '../repositories/health_repository.dart';
 import '../services/auth_service.dart';
 
 class HealthPage extends StatefulWidget {
-  const HealthPage({super.key});
+  const HealthPage({super.key, this.userId, this.repository});
+
+  /// Override hooks for widget tests, so they can run without Firebase.
+  /// Leave null in production — the page then reads the signed-in user via
+  /// [AuthService] as usual.
+  final String? userId;
+  final HealthRepository? repository;
 
   @override
   State<HealthPage> createState() => _HealthPageState();
 }
 
 class _HealthPageState extends State<HealthPage> {
-  final _auth = AuthService();
-
   @override
   Widget build(BuildContext context) {
-    final user = _auth.currentUser;
-    if (user == null) {
+    // Built lazily so tests that inject userId/repository never touch
+    // Firebase (AuthService's constructor reaches for FirebaseAuth.instance).
+    final userId = widget.userId ?? AuthService().currentUser?.uid;
+    if (userId == null) {
       return const Scaffold(body: Center(child: Text('Chưa đăng nhập')));
     }
-    final repository = HealthRepository(userId: user.uid);
+    final repository = widget.repository ?? HealthRepository(userId: userId);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +37,7 @@ class _HealthPageState extends State<HealthPage> {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Ghi chỉ số mới',
-            onPressed: () => _showAddSheet(context, repository, user.uid),
+            onPressed: () => _showAddSheet(context, repository, userId),
           ),
         ],
       ),
@@ -43,7 +49,7 @@ class _HealthPageState extends State<HealthPage> {
           }
           final metrics = snapshot.data ?? const <HealthMetric>[];
           if (metrics.isEmpty) {
-            return _EmptyState(onAdd: () => _showAddSheet(context, repository, user.uid));
+            return _EmptyState(onAdd: () => _showAddSheet(context, repository, userId));
           }
           final latest = metrics.first;
           return ListView(
@@ -627,6 +633,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                     Row(children: [
                       Expanded(
                         child: TextFormField(
+                          key: const Key('height_field'),
                           controller: _heightController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(labelText: 'Chiều cao (cm)'),
@@ -636,6 +643,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
+                          key: const Key('weight_field'),
                           controller: _weightController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(labelText: 'Cân nặng (kg)'),
@@ -647,6 +655,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                     Row(children: [
                       Expanded(
                         child: TextFormField(
+                          key: const Key('systolic_field'),
                           controller: _systolicController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(labelText: 'Huyết áp tâm thu'),
@@ -656,6 +665,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
+                          key: const Key('diastolic_field'),
                           controller: _diastolicController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(labelText: 'Huyết áp tâm trương'),
@@ -665,6 +675,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                     ]),
                     const SizedBox(height: 12),
                     TextFormField(
+                      key: const Key('heart_rate_field'),
                       controller: _heartRateController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(labelText: 'Nhịp tim (bpm)'),
@@ -674,6 +685,7 @@ class _AddMetricSheetState extends State<_AddMetricSheet> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
+                        key: const Key('save_button'),
                         onPressed: _isSaving ? null : _save,
                         child: _isSaving
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
